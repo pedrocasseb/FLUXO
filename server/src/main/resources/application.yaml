@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: fluxo
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fluxo
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
