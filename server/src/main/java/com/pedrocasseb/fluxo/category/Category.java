@@ -20,19 +20,19 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Category {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
-    private String name;
+  private String name;
 
-    @Enumerated(EnumType.STRING)
-    private CategoryType type;
+  @Enumerated(EnumType.STRING)
+  private CategoryType type;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id")
+  private User user;
 
-    @OneToMany(mappedBy = "category")
-    private List<FinancialTransaction> transactions = new ArrayList<>();
+  @OneToMany(mappedBy = "category")
+  private List<FinancialTransaction> transactions = new ArrayList<>();
 }
