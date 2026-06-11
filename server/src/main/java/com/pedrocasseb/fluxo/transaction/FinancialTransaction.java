@@ -3,6 +3,10 @@ package com.pedrocasseb.fluxo.transaction;
 import com.pedrocasseb.fluxo.category.Category;
 import com.pedrocasseb.fluxo.user.User;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -13,6 +17,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "transactions")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class FinancialTransaction {
 
     @Id
@@ -22,9 +30,6 @@ public class FinancialTransaction {
     private String description;
 
     private BigDecimal amount;
-
-    @Enumerated(EnumType.STRING)
-    private TransactionType type;
 
     private LocalDate transactionDate;
 

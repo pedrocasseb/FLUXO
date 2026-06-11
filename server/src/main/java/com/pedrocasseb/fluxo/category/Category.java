@@ -1,7 +1,6 @@
 package com.pedrocasseb.fluxo.category;
 
 import com.pedrocasseb.fluxo.transaction.FinancialTransaction;
-import com.pedrocasseb.fluxo.transaction.TransactionType;
 import com.pedrocasseb.fluxo.user.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
