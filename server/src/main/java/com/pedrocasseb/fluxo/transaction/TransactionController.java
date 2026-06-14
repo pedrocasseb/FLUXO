@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -29,5 +30,11 @@ public class TransactionController {
         return ResponseEntity.ok(
                 transactionService.findAll()
         );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        transactionService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

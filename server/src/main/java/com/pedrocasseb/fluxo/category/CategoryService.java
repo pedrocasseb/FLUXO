@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,5 +30,12 @@ public class CategoryService {
             category ->
                 new CategoryResponse(category.getId(), category.getName(), category.getType()))
         .toList();
+  }
+
+  public void delete(UUID id) {
+    if (!categoryRepository.existsById(id)) {
+      throw new RuntimeException("Category not found");
+    }
+    categoryRepository.deleteById(id);
   }
 }

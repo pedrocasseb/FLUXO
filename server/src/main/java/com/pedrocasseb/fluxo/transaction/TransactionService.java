@@ -5,6 +5,7 @@ import com.pedrocasseb.fluxo.category.CategoryRepository;
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +47,13 @@ public class TransactionService {
   public List<TransactionResponse> findAll() {
 
     return transactionRepository.findAll().stream().map(this::toResponse).toList();
+  }
+
+  public void delete(UUID id) {
+    if (!transactionRepository.existsById(id)) {
+      throw new RuntimeException("Transaction not found");
+    }
+    transactionRepository.deleteById(id);
   }
 
   private TransactionResponse toResponse(FinancialTransaction transaction) {
