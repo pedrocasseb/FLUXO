@@ -32,12 +32,26 @@ public class UserService {
   }
 
   public UserResponse updateProfile(User user, UpdateProfileRequest request) {
-    if (!user.getEmail().equalsIgnoreCase(request.email()) && userRepository.existsByEmail(request.email())) {
-      throw new RuntimeException("Email is already in use");
+    if (request.name() != null) {
+      if (request.name().trim().isEmpty()) {
+        throw new RuntimeException("Name cannot be empty");
+      }
+      user.setName(request.name());
     }
 
-    user.setName(request.name());
-    user.setEmail(request.email());
+    if (request.email() != null) {
+      if (request.email().trim().isEmpty()) {
+        throw new RuntimeException("Email cannot be empty");
+      }
+      if (!request.email().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+        throw new RuntimeException("Email is invalid");
+      }
+      if (!user.getEmail().equalsIgnoreCase(request.email()) && userRepository.existsByEmail(request.email())) {
+        throw new RuntimeException("Email is already in use");
+      }
+      user.setEmail(request.email());
+    }
+
     User saved = userRepository.save(user);
     return toResponse(saved);
   }
