@@ -56,6 +56,15 @@ public class TransactionService {
     transactionRepository.deleteById(id);
   }
 
+  public TransactionResponse findById(UUID id) {
+    FinancialTransaction transaction =
+        transactionRepository
+            .findById(id)
+            .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+    return toResponse(transaction);
+  }
+
   private TransactionResponse toResponse(FinancialTransaction transaction) {
     return new TransactionResponse(
         transaction.getId(),

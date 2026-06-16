@@ -2,13 +2,12 @@ package com.pedrocasseb.fluxo.transaction;
 
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
+import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -36,5 +35,10 @@ public class TransactionController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         transactionService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TransactionResponse> findById(@PathVariable UUID id) {
+        return ResponseEntity.ok(transactionService.findById(id));
     }
 }
