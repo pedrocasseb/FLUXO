@@ -2,6 +2,7 @@ package com.pedrocasseb.fluxo.transaction;
 
 import com.pedrocasseb.fluxo.category.Category;
 import com.pedrocasseb.fluxo.category.CategoryRepository;
+import com.pedrocasseb.fluxo.category.CategoryType;
 import com.pedrocasseb.fluxo.common.exception.CategoryNotFoundException;
 import com.pedrocasseb.fluxo.common.exception.TransactionNotFoundException;
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
@@ -21,11 +22,23 @@ public class TransactionService {
   private final CategoryRepository categoryRepository;
 
   public TransactionResponse create(CreateTransactionRequest request, User user) {
+    Category category;
 
-    Category category =
-        categoryRepository
-            .findByIdAndUser(request.categoryId(), user)
-            .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
+    if (request.categoryId() == null) {
+      category = categoryRepository
+          .findByNameIgnoreCaseAndUser("Other", user)
+          .orElseGet(() -> {
+            Category defaultCategory = new Category();
+            defaultCategory.setName("Other");
+            defaultCategory.setType(CategoryType.EXPENSE);
+            defaultCategory.setUser(user);
+            return categoryRepository.save(defaultCategory);
+          });
+    } else {
+      category = categoryRepository
+          .findByIdAndUser(request.categoryId(), user)
+          .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
+    }
 
     FinancialTransaction transaction = new FinancialTransaction();
 
