@@ -5,6 +5,7 @@ import com.pedrocasseb.fluxo.category.CategoryRepository;
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
 import com.pedrocasseb.fluxo.transaction.dto.UpdateTransactionRequest;
+import com.pedrocasseb.fluxo.user.User;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -17,65 +18,57 @@ public class TransactionService {
   private final TransactionRepository transactionRepository;
   private final CategoryRepository categoryRepository;
 
-  public TransactionResponse create(CreateTransactionRequest request) {
+  public TransactionResponse create(CreateTransactionRequest request, User user) {
 
     Category category =
         categoryRepository
-            .findById(request.categoryId())
+            .findByIdAndUser(request.categoryId(), user)
             .orElseThrow(() -> new RuntimeException("Category not found"));
 
     FinancialTransaction transaction = new FinancialTransaction();
 
     transaction.setDescription(request.description());
-
     transaction.setAmount(request.amount());
-
     transaction.setTransactionDate(request.transactionDate());
-
     transaction.setCategory(category);
+    transaction.setUser(user);
 
     FinancialTransaction saved = transactionRepository.save(transaction);
 
-    return new TransactionResponse(
-        saved.getId(),
-        saved.getDescription(),
-        saved.getAmount(),
-        saved.getTransactionDate(),
-        saved.getCategory().getId(),
-        saved.getCategory().getName());
+    return toResponse(saved);
   }
 
-  public List<TransactionResponse> findAll() {
-
-    return transactionRepository.findAll().stream().map(this::toResponse).toList();
+  public List<TransactionResponse> findAll(User user) {
+    return transactionRepository.findByUser(user).stream().map(this::toResponse).toList();
   }
 
-  public void delete(UUID id) {
-    if (!transactionRepository.existsById(id)) {
-      throw new RuntimeException("Transaction not found");
-    }
-    transactionRepository.deleteById(id);
-  }
-
-  public TransactionResponse findById(UUID id) {
+  public void delete(UUID id, User user) {
     FinancialTransaction transaction =
         transactionRepository
-            .findById(id)
+            .findByIdAndUser(id, user)
+            .orElseThrow(() -> new RuntimeException("Transaction not found"));
+    transactionRepository.delete(transaction);
+  }
+
+  public TransactionResponse findById(UUID id, User user) {
+    FinancialTransaction transaction =
+        transactionRepository
+            .findByIdAndUser(id, user)
             .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
     return toResponse(transaction);
   }
 
-  public TransactionResponse update(UUID id, UpdateTransactionRequest request) {
+  public TransactionResponse update(UUID id, UpdateTransactionRequest request, User user) {
     FinancialTransaction transaction =
         transactionRepository
-            .findById(id)
+            .findByIdAndUser(id, user)
             .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
     if (request.categoryId() != null) {
       Category category =
           categoryRepository
-              .findById(request.categoryId())
+              .findByIdAndUser(request.categoryId(), user)
               .orElseThrow(() -> new RuntimeException("Category not found"));
       transaction.setCategory(category);
     }
