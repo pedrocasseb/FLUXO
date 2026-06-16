@@ -18,4 +18,4 @@ spring:
     enabled: false
 
 jwt:
-  secret: ${JWT_SECRET:d7c189b8822556b26b3bfdf8d27038e219fbcfb93eaee89b9a67bc647db2de74}
+  secret: ${JWT_SECRET}
