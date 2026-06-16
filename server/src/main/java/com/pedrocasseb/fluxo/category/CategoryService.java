@@ -2,6 +2,7 @@ package com.pedrocasseb.fluxo.category;
 
 import com.pedrocasseb.fluxo.category.dto.CategoryResponse;
 import com.pedrocasseb.fluxo.category.dto.CreateCategoryRequest;
+import com.pedrocasseb.fluxo.category.dto.UpdateCategoryRequest;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,5 +48,18 @@ public class CategoryService {
     } else {
       throw new RuntimeException("Category not found");
     }
+  }
+
+  public CategoryResponse updateCategory(UUID id, UpdateCategoryRequest request) {
+    Category category = categoryRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Category not found"));
+    if (request.name() != null) {
+      category.setName(request.name());
+    }
+    if (request.type() != null) {
+      category.setType(request.type());
+    }
+    Category saved = categoryRepository.save(category);
+    return new CategoryResponse(saved.getId(), saved.getName(), saved.getType());
   }
 }

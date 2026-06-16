@@ -4,6 +4,7 @@ import com.pedrocasseb.fluxo.category.Category;
 import com.pedrocasseb.fluxo.category.CategoryRepository;
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
+import com.pedrocasseb.fluxo.transaction.dto.UpdateTransactionRequest;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,34 @@ public class TransactionService {
             .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
     return toResponse(transaction);
+  }
+
+  public TransactionResponse update(UUID id, UpdateTransactionRequest request) {
+    FinancialTransaction transaction =
+        transactionRepository
+            .findById(id)
+            .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
+    if (request.categoryId() != null) {
+      Category category =
+          categoryRepository
+              .findById(request.categoryId())
+              .orElseThrow(() -> new RuntimeException("Category not found"));
+      transaction.setCategory(category);
+    }
+
+    if (request.description() != null) {
+      transaction.setDescription(request.description());
+    }
+    if (request.amount() != null) {
+      transaction.setAmount(request.amount());
+    }
+    if (request.transactionDate() != null) {
+      transaction.setTransactionDate(request.transactionDate());
+    }
+
+    FinancialTransaction saved = transactionRepository.save(transaction);
+    return toResponse(saved);
   }
 
   private TransactionResponse toResponse(FinancialTransaction transaction) {

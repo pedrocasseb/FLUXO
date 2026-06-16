@@ -2,6 +2,8 @@ package com.pedrocasseb.fluxo.transaction;
 
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
+import com.pedrocasseb.fluxo.transaction.dto.UpdateTransactionRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -40,5 +42,13 @@ public class TransactionController {
     @GetMapping("/{id}")
     public ResponseEntity<TransactionResponse> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(transactionService.findById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TransactionResponse> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateTransactionRequest request
+    ) {
+        return ResponseEntity.ok(transactionService.update(id, request));
     }
 }

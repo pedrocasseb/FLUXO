@@ -2,6 +2,8 @@ package com.pedrocasseb.fluxo.category;
 
 import com.pedrocasseb.fluxo.category.dto.CategoryResponse;
 import com.pedrocasseb.fluxo.category.dto.CreateCategoryRequest;
+import com.pedrocasseb.fluxo.category.dto.UpdateCategoryRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -35,5 +37,13 @@ public class CategoryController {
   @GetMapping("/{id}")
   public ResponseEntity<CategoryResponse> findById(@PathVariable UUID id) {
     return ResponseEntity.ok(categoryService.findById(id));
+  }
+
+  @PutMapping("/{id}")
+  public ResponseEntity<CategoryResponse> updateCategory(
+      @PathVariable UUID id,
+      @Valid @RequestBody UpdateCategoryRequest request
+  ) {
+    return ResponseEntity.ok(categoryService.updateCategory(id, request));
   }
 }
