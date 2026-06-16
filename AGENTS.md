@@ -198,7 +198,7 @@ O projeto está em fase inicial de desenvolvimento. Abaixo está a lista de tare
 | **Server** | Criação das Entidades Base (`User`, `Category`, `FinancialTransaction`) | ✅ Concluído | `com.pedrocasseb.fluxo.*`         |
 | **Server** | Criação de Controllers básicos para transações e categorias             | ✅ Concluído | `com.pedrocasseb.fluxo.*`         |
 | **Server** | Implementação de Autenticação JWT no pacote `auth`                      | ✅ Concluído | `com.pedrocasseb.fluxo.auth`      |
-| **Server** | Lógica de agregação de relatórios no pacote `analytics`                 | ⏳ Pendente  | `com.pedrocasseb.fluxo.analytics` |
+| **Server** | Lógica de agregação de relatórios no pacote `analytics`                 | ✅ Concluído | `com.pedrocasseb.fluxo.analytics` |
 | **Client** | Configuração inicial do projeto React com TailwindCSS v4                | ✅ Concluído | `client/`                         |
 | **Client** | Implementação da estrutura de páginas do Dashboard (Layout base)        | ⏳ Pendente  | `client/src/`                     |
 | **Client** | Integração com as APIs de transações e categorias                       | ⏳ Pendente  | `client/src/`                     |

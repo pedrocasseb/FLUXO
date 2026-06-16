@@ -83,7 +83,7 @@ Mapeada a partir da entidade [Category.java](file:///Users/casseb/Develop/dev/pr
 | :--- | :--- | :--- | :---: | :---: | :--- |
 | `id` | `UUID` | `UUID` | PK | Não Nulo | Identificador único gerado automaticamente (`GenerationType.UUID`). |
 | `name` | `VARCHAR(255)` | `String` | - | Nulo | Nome descritivo da categoria. |
-| `type` | `VARCHAR(255)` | `CategoryType` | - | Nulo | Tipo da categoria, mapeado como String do enum [CategoryType.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/category/CategoryType.java) (`INCOME` ou `EXPENSE`). |
+| `type` | `VARCHAR(255)` | `CategoryType` | - | Nulo | Tipo da categoria, mapeado como String do enum [CategoryType.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/category/CategoryType.java) (`INCOME`, `EXPENSE` ou `INVESTMENT`). |
 | `user_id` | `UUID` | `User` | FK | Nulo | Referência ao usuário proprietário desta categoria (Chave estrangeira apontando para `users.id`). |
 
 ---
