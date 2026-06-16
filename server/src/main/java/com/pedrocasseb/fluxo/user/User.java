@@ -39,10 +39,10 @@ public class User implements UserDetails {
 
   @UpdateTimestamp private LocalDateTime updatedAt;
 
-  @OneToMany(mappedBy = "user")
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<FinancialTransaction> transactions = new ArrayList<>();
 
-  @OneToMany(mappedBy = "user")
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Category> categories = new ArrayList<>();
 
   @Override
