@@ -2,11 +2,11 @@ package com.pedrocasseb.fluxo.category;
 
 import com.pedrocasseb.fluxo.category.dto.CategoryResponse;
 import com.pedrocasseb.fluxo.category.dto.CreateCategoryRequest;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -37,5 +37,15 @@ public class CategoryService {
       throw new RuntimeException("Category not found");
     }
     categoryRepository.deleteById(id);
+  }
+
+  public CategoryResponse findById(UUID id) {
+    Optional<Category> category = categoryRepository.findById(id);
+    if (category.isPresent()) {
+      return new CategoryResponse(
+          category.get().getId(), category.get().getName(), category.get().getType());
+    } else {
+      throw new RuntimeException("Category not found");
+    }
   }
 }

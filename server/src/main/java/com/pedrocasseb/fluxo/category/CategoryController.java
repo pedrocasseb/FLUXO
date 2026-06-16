@@ -31,4 +31,9 @@ public class CategoryController {
     categoryService.delete(id);
     return ResponseEntity.noContent().build();
   }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<CategoryResponse> findById(@PathVariable UUID id) {
+    return ResponseEntity.ok(categoryService.findById(id));
+  }
 }
