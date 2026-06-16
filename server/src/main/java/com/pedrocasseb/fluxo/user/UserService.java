@@ -1,5 +1,9 @@
 package com.pedrocasseb.fluxo.user;
 
+import com.pedrocasseb.fluxo.common.exception.BusinessException;
+import com.pedrocasseb.fluxo.common.exception.EmailAlreadyExistsException;
+import com.pedrocasseb.fluxo.common.exception.InvalidCredentialsException;
+import com.pedrocasseb.fluxo.common.exception.UserNotFoundException;
 import com.pedrocasseb.fluxo.user.dto.ChangePasswordRequest;
 import com.pedrocasseb.fluxo.user.dto.UpdateProfileRequest;
 import com.pedrocasseb.fluxo.user.dto.UserResponse;
@@ -24,7 +28,7 @@ public class UserService {
   public User findById(UUID id) {
     return userRepository
         .findById(id)
-        .orElseThrow(() -> new RuntimeException("User not found"));
+        .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
   }
 
   public UserResponse toResponse(User user) {
@@ -34,20 +38,20 @@ public class UserService {
   public UserResponse updateProfile(User user, UpdateProfileRequest request) {
     if (request.name() != null) {
       if (request.name().trim().isEmpty()) {
-        throw new RuntimeException("Name cannot be empty");
+        throw new BusinessException("O nome não pode ser vazio");
       }
       user.setName(request.name());
     }
 
     if (request.email() != null) {
       if (request.email().trim().isEmpty()) {
-        throw new RuntimeException("Email cannot be empty");
+        throw new BusinessException("O e-mail não pode ser vazio");
       }
       if (!request.email().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-        throw new RuntimeException("Email is invalid");
+        throw new BusinessException("Formato de e-mail inválido");
       }
       if (!user.getEmail().equalsIgnoreCase(request.email()) && userRepository.existsByEmail(request.email())) {
-        throw new RuntimeException("Email is already in use");
+        throw new EmailAlreadyExistsException("E-mail já cadastrado");
       }
       user.setEmail(request.email());
     }
@@ -58,11 +62,11 @@ public class UserService {
 
   public void changePassword(User user, ChangePasswordRequest request, PasswordEncoder passwordEncoder) {
     if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-      throw new RuntimeException("Current password is incorrect");
+      throw new InvalidCredentialsException("Senha atual incorreta");
     }
 
     if (passwordEncoder.matches(request.newPassword(), user.getPassword())) {
-      throw new RuntimeException("New password cannot be the same as current password");
+      throw new BusinessException("A nova senha não pode ser igual à senha atual");
     }
 
     user.setPassword(passwordEncoder.encode(request.newPassword()));

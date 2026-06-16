@@ -2,6 +2,8 @@ package com.pedrocasseb.fluxo.transaction;
 
 import com.pedrocasseb.fluxo.category.Category;
 import com.pedrocasseb.fluxo.category.CategoryRepository;
+import com.pedrocasseb.fluxo.common.exception.CategoryNotFoundException;
+import com.pedrocasseb.fluxo.common.exception.TransactionNotFoundException;
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
 import com.pedrocasseb.fluxo.transaction.dto.UpdateTransactionRequest;
@@ -23,7 +25,7 @@ public class TransactionService {
     Category category =
         categoryRepository
             .findByIdAndUser(request.categoryId(), user)
-            .orElseThrow(() -> new RuntimeException("Category not found"));
+            .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
 
     FinancialTransaction transaction = new FinancialTransaction();
 
@@ -46,7 +48,7 @@ public class TransactionService {
     FinancialTransaction transaction =
         transactionRepository
             .findByIdAndUser(id, user)
-            .orElseThrow(() -> new RuntimeException("Transaction not found"));
+            .orElseThrow(() -> new TransactionNotFoundException("Transação não encontrada"));
     transactionRepository.delete(transaction);
   }
 
@@ -54,7 +56,7 @@ public class TransactionService {
     FinancialTransaction transaction =
         transactionRepository
             .findByIdAndUser(id, user)
-            .orElseThrow(() -> new RuntimeException("Transaction not found"));
+            .orElseThrow(() -> new TransactionNotFoundException("Transação não encontrada"));
 
     return toResponse(transaction);
   }
@@ -63,13 +65,13 @@ public class TransactionService {
     FinancialTransaction transaction =
         transactionRepository
             .findByIdAndUser(id, user)
-            .orElseThrow(() -> new RuntimeException("Transaction not found"));
+            .orElseThrow(() -> new TransactionNotFoundException("Transação não encontrada"));
 
     if (request.categoryId() != null) {
       Category category =
           categoryRepository
               .findByIdAndUser(request.categoryId(), user)
-              .orElseThrow(() -> new RuntimeException("Category not found"));
+              .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
       transaction.setCategory(category);
     }
 

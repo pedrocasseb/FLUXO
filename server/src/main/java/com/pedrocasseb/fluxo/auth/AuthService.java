@@ -4,6 +4,7 @@ import com.pedrocasseb.fluxo.auth.dto.LoginRequest;
 import com.pedrocasseb.fluxo.auth.dto.LoginResponse;
 import com.pedrocasseb.fluxo.auth.dto.RegisterRequest;
 import com.pedrocasseb.fluxo.auth.dto.RegisterResponse;
+import com.pedrocasseb.fluxo.common.exception.EmailAlreadyExistsException;
 import com.pedrocasseb.fluxo.user.User;
 import com.pedrocasseb.fluxo.user.UserRepository;
 import com.pedrocasseb.fluxo.user.UserService;
@@ -25,7 +26,7 @@ public class AuthService {
 
   public RegisterResponse register(RegisterRequest request) {
     if (userRepository.existsByEmail(request.email())) {
-      throw new RuntimeException("Email already registered");
+      throw new EmailAlreadyExistsException("E-mail já cadastrado");
     }
 
     User user = new User();
