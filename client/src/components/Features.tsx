@@ -1,98 +1,154 @@
-import React from 'react';
+import { useEffect, useRef, useState, type ElementType } from "react";
+import { Landmark, Tags, Waves, BarChart3 } from "lucide-react";
 
-export const Features: React.FC = () => {
+type Feature = {
+  icon: ElementType;
+  title: string;
+  description: string;
+  meta: string;
+};
+
+const FEATURES: Feature[] = [
+  {
+    icon: Landmark,
+    title: "Conecta com seu banco",
+    description:
+      "Seus extratos chegam automaticamente via Open Finance, sem exportar CSV nem colar planilha.",
+    meta: "Sincroniza a cada 15 min",
+  },
+  {
+    icon: Tags,
+    title: "Organiza cada lançamento",
+    description:
+      "Cada entrada e saída é classificada por categoria assim que chega, sem revisão linha por linha.",
+    meta: "Aplica-se em segundos",
+  },
+  {
+    icon: Waves,
+    title: "Projeta seu caixa futuro",
+    description:
+      "Fluxo cruza recebíveis e compromissos para mostrar quanto vai sobrar hoje, em 30 e em 90 dias.",
+    meta: "Projeção de 30/60/90 dias",
+  },
+  {
+    icon: BarChart3,
+    title: "Mostra o que importa, agora",
+    description:
+      "Relatórios se atualizam a cada novo lançamento, prontos para decisão sem esperar o fim do mês.",
+    meta: "Atualizado em tempo real",
+  },
+];
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const listener = (event: MediaQueryListEvent) => setReduced(event.matches);
+    query.addEventListener("change", listener);
+    return () => query.removeEventListener("change", listener);
+  }, []);
+
+  return reduced;
+}
+
+function useInView<T extends HTMLElement>(threshold = 0.15) {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
+
+  return { ref, inView };
+}
+
+export default function Features() {
+  const reduced = useReducedMotion();
+  const { ref, inView } = useInView<HTMLDivElement>();
+  const revealed = reduced || inView;
+
   return (
-    <section id="recursos" className="py-20 bg-[#f6f9fc] border-y border-[#e3e8ee]">
-      <div className="max-w-[1200px] mx-auto px-6">
-        
-        {/* Section Opener */}
-        <div className="text-center max-w-[650px] mx-auto mb-16">
-          <span className="text-[10px] uppercase font-semibold text-[#533afd] tracking-[0.1px] bg-[#533afd]/10 px-2.5 py-1 rounded-full">
-            Plataforma
-          </span>
-          <h2 className="text-3xl md:text-4xl font-light text-[#0d253d] tracking-[-0.96px] mt-4 leading-tight">
-            Controle absoluto das suas finanças com simplicidade editorial
+    <section className="bg-white" style={{ fontFamily: "var(--font-body)" }}>
+      <div className="mx-auto max-w-6xl px-6 py-24 sm:px-10 sm:py-28 lg:px-12">
+        <div
+          className="max-w-2xl"
+          style={{
+            opacity: revealed ? 1 : 0,
+            transform: revealed ? "translateY(0)" : "translateY(16px)",
+            transition: reduced ? "none" : "opacity 0.7s ease, transform 0.7s ease",
+          }}
+        >
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#4A3AEB]">
+            O caminho do seu dinheiro
+          </p>
+          <h2
+            className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-[#0E1420] sm:text-4xl lg:text-[2.75rem]"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Da conta bancária à decisão certa.
           </h2>
-          <p className="text-[15px] font-light text-[#64748d] mt-4 leading-relaxed">
-            Uma interface pensada para quem valoriza clareza visual, dados bem organizados e insights que ajudam a poupar e investir melhor.
+          <p className="mt-4 text-lg leading-relaxed text-[#0E1420]/70">
+            Do extrato bancário ao relatório pronto — cada etapa conectada, sem
+            planilha no meio do caminho.
           </p>
         </div>
 
-        {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Card 1: Standard Feature Card */}
-          <div className="bg-white border border-[#e3e8ee] p-8 rounded-xl shadow-sm flex flex-col justify-between text-left hover:shadow-md transition-all duration-300">
-            <div>
-              <div className="w-10 h-10 rounded-full bg-[#533afd]/10 flex items-center justify-center text-[#533afd] mb-6">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-                </svg>
-              </div>
-              <h3 className="text-[20px] font-light text-[#0d253d] tracking-[-0.26px] mb-3">
-                Insights Avançados
-              </h3>
-              <p className="text-[14px] font-light text-[#64748d] leading-relaxed">
-                Descubra automaticamente seus maiores gastos, transações mensais e compare o progresso dos seus investimentos de forma dinâmica.
-              </p>
-            </div>
-            <div className="mt-8">
-              <a href="/register" className="text-[#533afd] text-[14px] font-medium hover:text-[#4434d4] flex items-center gap-1.5 transition-colors">
-                Saiba mais
-                <span>&rarr;</span>
-              </a>
-            </div>
-          </div>
+        <div ref={ref} className="relative mt-16 sm:mt-20">
+          <div className="pointer-events-none absolute left-8 right-8 top-[50px] hidden h-px bg-gradient-to-r from-[#4A3AEB] via-[#4F8CFF] to-[#4A3AEB]/30 lg:block" />
 
-          {/* Card 2: Warm Cream Band Card (The Chromatic Interlude) */}
-          <div className="bg-[#f5e9d4] p-8 rounded-xl flex flex-col justify-between text-left hover:shadow-md transition-all duration-300">
-            <div>
-              <div className="w-10 h-10 rounded-full bg-[#9b6829]/15 flex items-center justify-center text-[#9b6829] mb-6">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m.011-2H12m0-2h.01M12 10h.01M12 12h.01M12 14h.01" />
-                </svg>
-              </div>
-              <h3 className="text-[20px] font-light text-[#0d253d] tracking-[-0.26px] mb-3">
-                Foco no Patrimônio
-              </h3>
-              <p className="text-[14px] font-light text-[#273951] leading-relaxed">
-                Separamos o que é gasto do que é investimento. Veja sua taxa de economia crescer a cada ciclo com regras de projeção estatísticas simples.
-              </p>
-            </div>
-            <div className="mt-8">
-              <a href="/register" className="text-[#533afd] text-[14px] font-medium hover:text-[#4434d4] flex items-center gap-1.5 transition-colors">
-                Experimentar agora
-                <span>&rarr;</span>
-              </a>
-            </div>
-          </div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            {FEATURES.map(({ icon: Icon, title, description, meta }, index) => (
+              <div
+                key={title}
+                style={{
+                  opacity: revealed ? 1 : 0,
+                  transform: revealed ? "translateY(0)" : "translateY(16px)",
+                  transition: reduced
+                    ? "none"
+                    : `opacity 0.6s ease ${index * 90}ms, transform 0.6s ease ${index * 90}ms`,
+                }}
+              >
+                <div className="group relative flex h-full flex-col gap-4 rounded-2xl border border-[#E4E7E2] bg-[#F5F6F4] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#4F8CFF]/30 hover:bg-white hover:shadow-[0_16px_40px_rgba(74,58,235,0.10)]">
+                  <div className="relative z-10 flex h-11 w-11 items-center justify-center rounded-full border border-[#E4E7E2] bg-white text-[#0E1420] transition-colors duration-300 group-hover:border-[#4F8CFF]/40">
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+                  </div>
 
-          {/* Card 3: Standard Feature Card */}
-          <div className="bg-white border border-[#e3e8ee] p-8 rounded-xl shadow-sm flex flex-col justify-between text-left hover:shadow-md transition-all duration-300">
-            <div>
-              <div className="w-10 h-10 rounded-full bg-[#533afd]/10 flex items-center justify-center text-[#533afd] mb-6">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="text-[20px] font-light text-[#0d253d] tracking-[-0.26px] mb-3">
-                Isolamento e Segurança
-              </h3>
-              <p className="text-[14px] font-light text-[#64748d] leading-relaxed">
-                Seus dados financeiros pertencem apenas a você. Autenticação JWT stateless com isolamento absoluto a nível de banco de dados.
-              </p>
-            </div>
-            <div className="mt-8">
-              <a href="/register" className="text-[#533afd] text-[14px] font-medium hover:text-[#4434d4] flex items-center gap-1.5 transition-colors">
-                Ver segurança
-                <span>&rarr;</span>
-              </a>
-            </div>
-          </div>
+                  <div>
+                    <h3
+                      className="text-[1.05rem] font-semibold tracking-[-0.01em] text-[#0E1420]"
+                      style={{ fontFamily: "var(--font-display)" }}
+                    >
+                      {title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-[#0E1420]/65">
+                      {description}
+                    </p>
+                  </div>
 
+                  <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#0E1420]/40">
+                    {meta}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-
       </div>
     </section>
   );
-};
+}

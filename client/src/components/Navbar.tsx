@@ -1,106 +1,85 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
-interface NavbarProps {
-    onNavigate?: (page: string) => void;
-    currentPage?: string;
+function FlowMark() {
+  return (
+    <svg viewBox="0 0 48 48" className="h-7 w-7" aria-hidden="true" fill="none">
+      <defs>
+        <linearGradient id="nav-grad" x1="4" y1="44" x2="44" y2="4" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#4A3AEB" />
+          <stop offset="1" stopColor="#4F8CFF" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M10 44V28c0-9.4 7.6-17 17-17h11L26.6 22.4C22.9 26.1 18 28.8 12.8 30L10 30.6"
+        stroke="url(#nav-grad)"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 44v-9.4c9.4-1.6 17.9-6.4 24.4-13.6"
+        stroke="url(#nav-grad)"
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.55"
+      />
+    </svg>
+  );
 }
 
-export const Navbar: React.FC<NavbarProps> = ({
-    onNavigate,
-    currentPage = "home",
-}) => {
-    const [scrolled, setScrolled] = useState(false);
+export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            if (window.scrollY > 20) {
-                setScrolled(true);
-            } else {
-                setScrolled(false);
-            }
-        };
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 32);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-    return (
-        <div className="fixed top-6 left-0 w-full z-50 px-4 pointer-events-none">
-            <nav
-                className={`mx-auto max-w-[960px] w-full rounded-full transition-all duration-300 pointer-events-auto border ${
-                    scrolled
-                        ? "bg-white/80 backdrop-blur-lg border-[#e3e8ee]/80 shadow-[0_8px_30px_rgba(0,55,112,0.06)] py-3.5 px-6"
-                        : "bg-white/40 backdrop-blur-sm border-white/30 py-4 px-6"
-                }`}
-            >
-                <div className="flex items-center justify-between">
-                    {/* Logo Wordmark */}
-                    <a
-                        href="/"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            if (onNavigate) onNavigate("home");
-                        }}
-                        className="flex items-center gap-2 text-lg font-semibold tracking-[-0.64px] text-[#0d253d] select-none"
-                    >
-                        <img
-                            src="/logo.png"
-                            alt="FLUXO"
-                            className="h-8 w-auto object-contain"
-                        />
-                        <span className="font-bold tracking-[-0.4px]">
-                            FLUXO
-                        </span>
-                    </a>
+  return (
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-[#F5F6F4]/90 backdrop-blur-sm border-b border-[#E4E7E2]'
+          : ''
+      }`}
+    >
+      <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-12 h-16 flex items-center justify-between">
+        <a href="/" className="flex items-center gap-2.5 select-none" aria-label="Fluxo">
+          <FlowMark />
+          <span
+            className="text-[17px] font-semibold tracking-[-0.02em] text-[#0E1420]"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Fluxo
+          </span>
+        </a>
 
-                    {/* Primary Nav Center */}
-                    {currentPage === "home" && (
-                        <div className="hidden md:flex items-center gap-6 text-[14px] font-normal text-[#273951]">
-                            <a
-                                href="#recursos"
-                                className="hover:text-[#533afd] transition-colors"
-                            >
-                                Funcionalidades
-                            </a>
-                            <a
-                                href="#precos"
-                                className="hover:text-[#533afd] transition-colors"
-                            >
-                                Preços
-                            </a>
-                            <a
-                                href="#sobre"
-                                className="hover:text-[#533afd] transition-colors"
-                            >
-                                Sobre
-                            </a>
-                        </div>
-                    )}
+        <nav className="hidden md:flex items-center gap-7 text-[14px] text-[#0E1420]/55">
+          <a href="#recursos" className="hover:text-[#0E1420] transition-colors duration-200">
+            Funcionalidades
+          </a>
+          <a href="#precos" className="hover:text-[#0E1420] transition-colors duration-200">
+            Preços
+          </a>
+        </nav>
 
-                    {/* Sign In + Primary Pill CTA */}
-                    <div className="flex items-center gap-3.5">
-                        <a
-                            href="/login"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                if (onNavigate) onNavigate("login");
-                            }}
-                            className="text-[13px] font-medium text-[#533afd] hover:text-[#4434d4] transition-colors px-2.5 py-1.5"
-                        >
-                            Entrar
-                        </a>
-                        <a
-                            href="/register"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                if (onNavigate) onNavigate("register");
-                            }}
-                            className="bg-[#533afd] hover:bg-[#4434d4] active:bg-[#2e2b8c] text-white text-[13px] font-medium px-4 py-1.5 rounded-full transition-all duration-200 shadow-sm shadow-[#003770]/10 flex items-center justify-center min-h-[36px]"
-                        >
-                            Começar Grátis
-                        </a>
-                    </div>
-                </div>
-            </nav>
+        <div className="flex items-center gap-4">
+          <a
+            href="#entrar"
+            className="hidden sm:inline text-[14px] text-[#0E1420]/55 hover:text-[#0E1420] transition-colors duration-200"
+          >
+            Entrar
+          </a>
+          <a
+            href="#comecar"
+            className="inline-flex items-center gap-1.5 bg-[#0E1420] hover:bg-[#4A3AEB] text-[#F5F6F4] text-[13px] font-medium px-4 py-2 rounded-full transition-all duration-300 hover:shadow-[0_4px_16px_rgba(74,58,235,0.28)]"
+          >
+            Começar grátis
+          </a>
         </div>
-    );
-};
+      </div>
+    </header>
+  );
+}
