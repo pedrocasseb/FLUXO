@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const FREE_FEATURES = [
   'Até 50 transações por mês',
@@ -124,12 +125,12 @@ export default function Pricing() {
               ))}
             </ul>
 
-            <a
-              href="#comecar"
+            <Link
+              to="/cadastro"
               className="mt-8 w-full text-center py-3 rounded-full border border-[#0E1420]/15 text-[13px] font-medium text-[#0E1420] hover:border-[#0E1420]/30 hover:bg-[#F5F6F4] transition-all duration-200"
             >
               Começar grátis
-            </a>
+            </Link>
           </div>
 
           {/* Pro */}
@@ -168,12 +169,12 @@ export default function Pricing() {
               ))}
             </ul>
 
-            <a
-              href="#comecar"
+            <Link
+              to="/cadastro"
               className="mt-8 w-full text-center py-3 rounded-full bg-white hover:bg-[#F5F6F4] text-[13px] font-medium text-[#0E1420] transition-all duration-200"
             >
               Assinar Pro
-            </a>
+            </Link>
           </div>
         </div>
       </div>

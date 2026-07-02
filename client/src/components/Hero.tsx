@@ -1,21 +1,8 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { type CSSProperties } from "react";
+import { Link } from "react-router-dom";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 
 const PARTNERS = ["Nortis", "Verba Contábil", "Cais & Rota", "Malote", "Sigma Finanças"];
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const listener = (event: MediaQueryListEvent) => setReduced(event.matches);
-    query.addEventListener("change", listener);
-    return () => query.removeEventListener("change", listener);
-  }, []);
-
-  return reduced;
-}
 
 
 function FlowChart({ reduced }: { reduced: boolean }) {
@@ -136,13 +123,13 @@ export default function Hero() {
           </p>
 
           <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center" style={entrance(340)}>
-            <a
-              href="#comecar"
+            <Link
+              to="/cadastro"
               className="group inline-flex items-center gap-2 rounded-full bg-[#0E1420] px-6 py-3.5 text-[15px] font-medium text-white transition-all duration-300 hover:bg-[#4A3AEB] hover:shadow-[0_8px_24px_rgba(74,58,235,0.35)]"
             >
               Começar grátis
               <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>
-            </a>
+            </Link>
             <a
               href="#demonstracao"
               className="group inline-flex items-center gap-2 px-2 py-3.5 text-[15px] font-medium text-[#0E1420]"
