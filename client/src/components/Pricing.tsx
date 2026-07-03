@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useInView } from '../hooks/useInView';
+import { EASE_FLUID } from '../lib/motion';
 
 const FREE_FEATURES = [
   'Até 50 transações por mês',
@@ -36,31 +38,10 @@ function Check({ light = false }: { light?: boolean }) {
   );
 }
 
-function useInView<T extends HTMLElement>(threshold = 0.15) {
-  const ref = useRef<T | null>(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { threshold },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [threshold]);
-
-  return { ref, inView };
-}
-
 export default function Pricing() {
+  const reduced = useReducedMotion();
   const { ref, inView } = useInView<HTMLDivElement>();
+  const revealed = reduced || inView;
 
   return (
     <section id="precos" className="bg-[#F5F6F4]" style={{ fontFamily: 'var(--font-body)' }}>
@@ -88,9 +69,9 @@ export default function Pricing() {
           ref={ref}
           className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto"
           style={{
-            opacity: inView ? 1 : 0,
-            transform: inView ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'opacity 0.7s ease, transform 0.7s ease',
+            opacity: revealed ? 1 : 0,
+            transform: revealed ? 'translateY(0)' : 'translateY(20px)',
+            transition: reduced ? 'none' : `opacity 0.7s ${EASE_FLUID}, transform 0.7s ${EASE_FLUID}`,
           }}
         >
           {/* Free */}

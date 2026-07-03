@@ -4,6 +4,9 @@ import Hero from '../components/Hero';
 import Features from '../components/Features';
 import Pricing from '../components/Pricing';
 import Footer from '../components/Footer';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useInView } from '../hooks/useInView';
+import { EASE_FLUID } from '../lib/motion';
 
 const STATS = [
   { value: '2.4M+', label: 'Transações registradas' },
@@ -31,6 +34,12 @@ const STEPS = [
 ];
 
 export default function LandingPage() {
+  const reduced = useReducedMotion();
+  const { ref: statsRef, inView: statsInView } = useInView<HTMLDivElement>();
+  const { ref: stepsRef, inView: stepsInView } = useInView<HTMLDivElement>();
+  const statsRevealed = reduced || statsInView;
+  const stepsRevealed = reduced || stepsInView;
+
   return (
     <div style={{ fontFamily: 'var(--font-body)' }}>
       <Navbar />
@@ -38,10 +47,20 @@ export default function LandingPage() {
 
       {/* Stats strip */}
       <section className="border-y border-[#E4E7E2] bg-white">
-        <div className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-12 py-12">
+        <div ref={statsRef} className="mx-auto max-w-6xl px-6 sm:px-10 lg:px-12 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-6">
-            {STATS.map(({ value, label }) => (
-              <div key={label} className="text-center md:text-left">
+            {STATS.map(({ value, label }, index) => (
+              <div
+                key={label}
+                className="text-center md:text-left"
+                style={{
+                  opacity: statsRevealed ? 1 : 0,
+                  transform: statsRevealed ? 'translateY(0)' : 'translateY(14px)',
+                  transition: reduced
+                    ? 'none'
+                    : `opacity 0.6s ${EASE_FLUID} ${index * 70}ms, transform 0.6s ${EASE_FLUID} ${index * 70}ms`,
+                }}
+              >
                 <div
                   className="text-[1.9rem] font-semibold tracking-[-0.04em] text-[#0E1420]"
                   style={{ fontFamily: 'var(--font-display)' }}
@@ -75,9 +94,18 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
-            {STEPS.map(({ number, title, body }) => (
-              <div key={number}>
+          <div ref={stepsRef} className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+            {STEPS.map(({ number, title, body }, index) => (
+              <div
+                key={number}
+                style={{
+                  opacity: stepsRevealed ? 1 : 0,
+                  transform: stepsRevealed ? 'translateY(0)' : 'translateY(16px)',
+                  transition: reduced
+                    ? 'none'
+                    : `opacity 0.6s ${EASE_FLUID} ${index * 100}ms, transform 0.6s ${EASE_FLUID} ${index * 100}ms`,
+                }}
+              >
                 <span
                   className="text-[11px] tracking-[0.14em] text-[#4A3AEB] font-medium block mb-4"
                   style={{ fontFamily: 'var(--font-mono)' }}

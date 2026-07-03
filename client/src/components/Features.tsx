@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState, type ElementType } from "react";
+import { type ElementType } from "react";
 import { Landmark, Tags, Waves, BarChart3 } from "lucide-react";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { useInView } from "../hooks/useInView";
+import { EASE_FLUID } from "../lib/motion";
 
 type Feature = {
   icon: ElementType;
@@ -39,44 +42,6 @@ const FEATURES: Feature[] = [
   },
 ];
 
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const listener = (event: MediaQueryListEvent) => setReduced(event.matches);
-    query.addEventListener("change", listener);
-    return () => query.removeEventListener("change", listener);
-  }, []);
-
-  return reduced;
-}
-
-function useInView<T extends HTMLElement>(threshold = 0.15) {
-  const ref = useRef<T | null>(null);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setInView(true);
-          observer.disconnect();
-        }
-      },
-      { threshold },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [threshold]);
-
-  return { ref, inView };
-}
-
 export default function Features() {
   const reduced = useReducedMotion();
   const { ref, inView } = useInView<HTMLDivElement>();
@@ -90,7 +55,7 @@ export default function Features() {
           style={{
             opacity: revealed ? 1 : 0,
             transform: revealed ? "translateY(0)" : "translateY(16px)",
-            transition: reduced ? "none" : "opacity 0.7s ease, transform 0.7s ease",
+            transition: reduced ? "none" : `opacity 0.7s ${EASE_FLUID}, transform 0.7s ${EASE_FLUID}`,
           }}
         >
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#4A3AEB]">
@@ -120,7 +85,7 @@ export default function Features() {
                   transform: revealed ? "translateY(0)" : "translateY(16px)",
                   transition: reduced
                     ? "none"
-                    : `opacity 0.6s ease ${index * 90}ms, transform 0.6s ease ${index * 90}ms`,
+                    : `opacity 0.6s ${EASE_FLUID} ${index * 90}ms, transform 0.6s ${EASE_FLUID} ${index * 90}ms`,
                 }}
               >
                 <div className="group relative flex h-full flex-col gap-4 rounded-2xl border border-[#E4E7E2] bg-[#F5F6F4] p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#4F8CFF]/30 hover:bg-white hover:shadow-[0_16px_40px_rgba(74,58,235,0.10)]">
