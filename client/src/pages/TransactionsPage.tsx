@@ -59,6 +59,14 @@ const TYPE_FILTER_LABELS: Record<TypeFilter, string> = {
 
 const TYPE_FILTER_ORDER: TypeFilter[] = ["ALL", "EXPENSE", "INCOME", "INVESTMENT"];
 
+const TYPE_LABELS: Record<CategoryType, string> = {
+  EXPENSE: "Despesa",
+  INCOME: "Receita",
+  INVESTMENT: "Investimento",
+};
+
+const TYPE_ORDER: CategoryType[] = ["EXPENSE", "INCOME", "INVESTMENT"];
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -67,10 +75,17 @@ type FormState = {
   description: string;
   amount: string;
   transactionDate: string;
+  type: CategoryType;
   categoryId: string;
 };
 
-const EMPTY_FORM: FormState = { description: "", amount: "", transactionDate: todayISO(), categoryId: "" };
+const EMPTY_FORM: FormState = {
+  description: "",
+  amount: "",
+  transactionDate: todayISO(),
+  type: "EXPENSE",
+  categoryId: "",
+};
 
 export default function TransactionsPage() {
   const navigate = useNavigate();
@@ -149,6 +164,12 @@ export default function TransactionsPage() {
     return sorted;
   }, [transactions, typeFilter, sortBy, categoryTypeById]);
 
+  const categoriesByType = useMemo(() => {
+    const groups: Record<CategoryType, Category[]> = { EXPENSE: [], INCOME: [], INVESTMENT: [] };
+    categories.forEach((category) => groups[category.type].push(category));
+    return groups;
+  }, [categories]);
+
   function handleLogout() {
     removeToken();
     navigate("/entrar", { replace: true });
@@ -167,6 +188,7 @@ export default function TransactionsPage() {
       description: transaction.description,
       amount: String(transaction.amount),
       transactionDate: transaction.transactionDate,
+      type: categoryTypeById.get(transaction.categoryId) ?? "EXPENSE",
       categoryId: transaction.categoryId,
     });
     setFormError(null);
@@ -183,6 +205,7 @@ export default function TransactionsPage() {
         amount: Number(form.amount),
         transactionDate: form.transactionDate,
         categoryId: form.categoryId || undefined,
+        type: form.type,
       };
       if (editing) {
         const updated = await updateTransaction(editing.id, input);
@@ -429,13 +452,31 @@ export default function TransactionsPage() {
             value={form.categoryId}
             onChange={(event) => setForm((prev) => ({ ...prev, categoryId: event.target.value }))}
           >
-            <option value="">Sem categoria (usa "Other")</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
+            <option value="">Other (sem categoria específica)</option>
+            {TYPE_ORDER.filter((type) => categoriesByType[type].length > 0).map((type) => (
+              <optgroup key={type} label={TYPE_LABELS[type]}>
+                {categoriesByType[type].map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </SelectField>
+          {form.categoryId === "" && (
+            <SelectField
+              id="transaction-type"
+              label="Tipo de Other"
+              value={form.type}
+              onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value as CategoryType }))}
+            >
+              {TYPE_ORDER.map((type) => (
+                <option key={type} value={type}>
+                  {TYPE_LABELS[type]}
+                </option>
+              ))}
+            </SelectField>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"

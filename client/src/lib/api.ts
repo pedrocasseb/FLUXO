@@ -114,6 +114,7 @@ export type TransactionInput = {
   amount: number;
   transactionDate: string;
   categoryId?: string;
+  type: CategoryType;
 };
 
 export function listTransactions() {

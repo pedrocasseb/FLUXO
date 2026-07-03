@@ -1,5 +1,6 @@
 package com.pedrocasseb.fluxo.transaction.dto;
 
+import com.pedrocasseb.fluxo.category.CategoryType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -16,6 +17,8 @@ public record CreateTransactionRequest(
     BigDecimal amount,
 
     UUID categoryId,
+
+    CategoryType type,
 
     @NotNull(message = "Transaction date is required")
     LocalDate transactionDate

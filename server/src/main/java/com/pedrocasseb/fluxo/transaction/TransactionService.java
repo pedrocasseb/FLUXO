@@ -22,23 +22,7 @@ public class TransactionService {
   private final CategoryRepository categoryRepository;
 
   public TransactionResponse create(CreateTransactionRequest request, User user) {
-    Category category;
-
-    if (request.categoryId() == null) {
-      category = categoryRepository
-          .findByNameIgnoreCaseAndUser("Other", user)
-          .orElseGet(() -> {
-            Category defaultCategory = new Category();
-            defaultCategory.setName("Other");
-            defaultCategory.setType(CategoryType.EXPENSE);
-            defaultCategory.setUser(user);
-            return categoryRepository.save(defaultCategory);
-          });
-    } else {
-      category = categoryRepository
-          .findByIdAndUser(request.categoryId(), user)
-          .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
-    }
+    Category category = resolveCategory(request.categoryId(), request.type(), user);
 
     FinancialTransaction transaction = new FinancialTransaction();
 
@@ -80,13 +64,7 @@ public class TransactionService {
             .findByIdAndUser(id, user)
             .orElseThrow(() -> new TransactionNotFoundException("Transação não encontrada"));
 
-    if (request.categoryId() != null) {
-      Category category =
-          categoryRepository
-              .findByIdAndUser(request.categoryId(), user)
-              .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
-      transaction.setCategory(category);
-    }
+    transaction.setCategory(resolveCategory(request.categoryId(), request.type(), user));
 
     if (request.description() != null) {
       transaction.setDescription(request.description());
@@ -100,6 +78,25 @@ public class TransactionService {
 
     FinancialTransaction saved = transactionRepository.save(transaction);
     return toResponse(saved);
+  }
+
+  private Category resolveCategory(UUID categoryId, CategoryType type, User user) {
+    if (categoryId != null) {
+      return categoryRepository
+          .findByIdAndUser(categoryId, user)
+          .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
+    }
+
+    CategoryType resolvedType = type != null ? type : CategoryType.EXPENSE;
+    return categoryRepository
+        .findByNameIgnoreCaseAndTypeAndUser("Other", resolvedType, user)
+        .orElseGet(() -> {
+          Category defaultCategory = new Category();
+          defaultCategory.setName("Other");
+          defaultCategory.setType(resolvedType);
+          defaultCategory.setUser(user);
+          return categoryRepository.save(defaultCategory);
+        });
   }
 
   private TransactionResponse toResponse(FinancialTransaction transaction) {
