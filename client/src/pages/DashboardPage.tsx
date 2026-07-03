@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
 import FlowMark from "../components/FlowMark";
+import UserMenu from "../components/dashboard/UserMenu";
 import { me, removeToken, type AuthUser } from "../lib/api";
 
 export default function DashboardPage() {
@@ -56,16 +57,7 @@ export default function DashboardPage() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-5">
-            <span className="hidden text-[14px] text-[#0E1420]/55 sm:inline">{user?.email}</span>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-[14px] font-medium text-[#0E1420]/55 transition-colors duration-200 hover:text-[#0E1420]"
-            >
-              Sair
-            </button>
-          </div>
+          {user && <UserMenu name={user.name} email={user.email} onLogout={handleLogout} />}
         </div>
       </header>
 
