@@ -4,6 +4,8 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
+import CategoriesPage from './pages/CategoriesPage';
+import TransactionsPage from './pages/TransactionsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RedirectIfAuthenticated from './components/auth/RedirectIfAuthenticated';
 import { useReducedMotion } from './hooks/useReducedMotion';
@@ -38,6 +40,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/categorias"
+          element={
+            <ProtectedRoute>
+              <CategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transacoes"
+          element={
+            <ProtectedRoute>
+              <TransactionsPage />
             </ProtectedRoute>
           }
         />

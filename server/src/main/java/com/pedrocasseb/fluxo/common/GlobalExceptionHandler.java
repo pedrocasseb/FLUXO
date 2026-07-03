@@ -10,8 +10,10 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -124,6 +126,38 @@ public class GlobalExceptionHandler {
         null
     );
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
+      HttpMessageNotReadableException ex,
+      HttpServletRequest request
+  ) {
+    ErrorResponse errorResponse = new ErrorResponse(
+        LocalDateTime.now(),
+        HttpStatus.BAD_REQUEST.value(),
+        "Bad Request",
+        "Dados inválidos",
+        request.getRequestURI(),
+        null
+    );
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+      DataIntegrityViolationException ex,
+      HttpServletRequest request
+  ) {
+    ErrorResponse errorResponse = new ErrorResponse(
+        LocalDateTime.now(),
+        HttpStatus.CONFLICT.value(),
+        "Conflict",
+        "Este registro está em uso por outro recurso e não pode ser excluído",
+        request.getRequestURI(),
+        null
+    );
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
   }
 
   @ExceptionHandler(BusinessException.class)

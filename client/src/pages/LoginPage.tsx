@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
-import FormField from "../components/auth/FormField";
+import FormField from "../components/FormField";
 import PasswordField from "../components/auth/PasswordField";
-import ErrorBanner from "../components/auth/ErrorBanner";
+import ErrorBanner from "../components/ErrorBanner";
 import { login, saveToken, ApiError } from "../lib/api";
 
 export default function LoginPage() {

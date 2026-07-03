@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LogOut } from "lucide-react";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { useDelayedMount } from "../../hooks/useDelayedMount";
 import { EASE_FLUID } from "../../lib/motion";
 
 const MENU_DURATION = 160;
@@ -22,33 +23,23 @@ export default function UserMenu({
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const hoverTimeoutRef = useRef<number | undefined>(undefined);
-  const unmountTimeoutRef = useRef<number | undefined>(undefined);
   const reduced = useReducedMotion();
+  const mounted = useDelayedMount(open, reduced ? 0 : MENU_DURATION);
 
   useEffect(() => {
-    return () => {
-      window.clearTimeout(hoverTimeoutRef.current);
-      window.clearTimeout(unmountTimeoutRef.current);
-    };
+    return () => window.clearTimeout(hoverTimeoutRef.current);
   }, []);
 
   function openMenu() {
     window.clearTimeout(hoverTimeoutRef.current);
-    window.clearTimeout(unmountTimeoutRef.current);
-    setMounted(true);
     setOpen(true);
   }
 
   function closeMenu() {
     setOpen(false);
-    unmountTimeoutRef.current = window.setTimeout(
-      () => setMounted(false),
-      reduced ? 0 : MENU_DURATION,
-    );
   }
 
   function scheduleClose() {
@@ -77,7 +68,6 @@ export default function UserMenu({
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   return (

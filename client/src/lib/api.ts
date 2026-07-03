@@ -25,6 +25,10 @@ async function request<T>(path: string, options: RequestInit): Promise<T> {
     throw new ApiError(await parseErrorMessage(response));
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json();
 }
 
@@ -40,6 +44,17 @@ function authedGet<T>(path: string) {
   return request<T>(path, {
     method: "GET",
     headers: { Authorization: `Bearer ${getToken()}` },
+  });
+}
+
+function authedSend<T>(method: "POST" | "PUT" | "DELETE", path: string, body?: unknown) {
+  return request<T>(path, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
@@ -59,6 +74,62 @@ export function register(name: string, email: string, password: string) {
 
 export function me() {
   return authedGet<AuthUser>("/auth/me");
+}
+
+export type CategoryType = "INCOME" | "EXPENSE" | "INVESTMENT";
+
+export type Category = {
+  id: string;
+  name: string;
+  type: CategoryType;
+};
+
+export function listCategories() {
+  return authedGet<Category[]>("/api/categories");
+}
+
+export function createCategory(name: string, type: CategoryType) {
+  return authedSend<Category>("POST", "/api/categories", { name, type });
+}
+
+export function updateCategory(id: string, name: string, type: CategoryType) {
+  return authedSend<Category>("PUT", `/api/categories/${id}`, { name, type });
+}
+
+export function deleteCategory(id: string) {
+  return authedSend<void>("DELETE", `/api/categories/${id}`);
+}
+
+export type Transaction = {
+  id: string;
+  description: string;
+  amount: number;
+  transactionDate: string;
+  categoryId: string;
+  categoryName: string;
+};
+
+export type TransactionInput = {
+  description: string;
+  amount: number;
+  transactionDate: string;
+  categoryId?: string;
+};
+
+export function listTransactions() {
+  return authedGet<Transaction[]>("/api/transactions");
+}
+
+export function createTransaction(input: TransactionInput) {
+  return authedSend<Transaction>("POST", "/api/transactions", input);
+}
+
+export function updateTransaction(id: string, input: TransactionInput) {
+  return authedSend<Transaction>("PUT", `/api/transactions/${id}`, input);
+}
+
+export function deleteTransaction(id: string) {
+  return authedSend<void>("DELETE", `/api/transactions/${id}`);
 }
 
 const TOKEN_KEY = "fluxo_token";
