@@ -22,7 +22,7 @@ export default function SignupPage() {
       await register(name, email, password);
       const { token } = await login(email, password);
       saveToken(token);
-      navigate("/");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível completar. Tente novamente.");
     } finally {
@@ -61,7 +61,7 @@ export default function SignupPage() {
       </h2>
       <p className="mt-2 text-[14px] text-[#0E1420]/55">Organize suas finanças em poucos passos.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         {error && <ErrorBanner message={error} />}
 
         <FormField

@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       const { token } = await login(email, password);
       saveToken(token);
-      navigate("/");
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível completar. Tente novamente.");
     } finally {
@@ -59,7 +59,7 @@ export default function LoginPage() {
       </h2>
       <p className="mt-2 text-[14px] text-[#0E1420]/55">Informe seu e-mail e senha para continuar.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         {error && <ErrorBanner message={error} />}
 
         <FormField
