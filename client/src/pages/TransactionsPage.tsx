@@ -5,6 +5,7 @@ import AppHeader from "../components/dashboard/AppHeader";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import FormField from "../components/FormField";
+import DateField from "../components/DateField";
 import SelectField from "../components/SelectField";
 import ErrorBanner from "../components/ErrorBanner";
 import FlowMark from "../components/FlowMark";
@@ -416,13 +417,11 @@ export default function TransactionsPage() {
             value={form.amount}
             onChange={(event) => setForm((prev) => ({ ...prev, amount: event.target.value }))}
           />
-          <FormField
+          <DateField
             id="transaction-date"
             label="Data"
-            type="date"
-            required
             value={form.transactionDate}
-            onChange={(event) => setForm((prev) => ({ ...prev, transactionDate: event.target.value }))}
+            onChange={(value) => setForm((prev) => ({ ...prev, transactionDate: value }))}
           />
           <SelectField
             id="transaction-category"
