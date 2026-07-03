@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import AppHeader from "../components/dashboard/AppHeader";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
@@ -38,6 +38,26 @@ const AMOUNT_SIGN: Record<CategoryType, string> = {
   INVESTMENT: "",
 };
 
+type SortOption = "newest" | "highest" | "lowest";
+type TypeFilter = "ALL" | CategoryType;
+
+const SORT_LABELS: Record<SortOption, string> = {
+  newest: "Mais novos",
+  highest: "Maior valor",
+  lowest: "Menor valor",
+};
+
+const SORT_ORDER: SortOption[] = ["newest", "highest", "lowest"];
+
+const TYPE_FILTER_LABELS: Record<TypeFilter, string> = {
+  ALL: "Todas",
+  EXPENSE: "Despesa",
+  INCOME: "Receita",
+  INVESTMENT: "Investimento",
+};
+
+const TYPE_FILTER_ORDER: TypeFilter[] = ["ALL", "EXPENSE", "INCOME", "INVESTMENT"];
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -68,6 +88,9 @@ export default function TransactionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
 
   useEffect(() => {
     let active = true;
@@ -108,11 +131,22 @@ export default function TransactionsPage() {
     return map;
   }, [categories]);
 
-  const sortedTransactions = useMemo(
-    () =>
-      [...transactions].sort((a, b) => b.transactionDate.localeCompare(a.transactionDate)),
-    [transactions],
-  );
+  const visibleTransactions = useMemo(() => {
+    const filtered =
+      typeFilter === "ALL"
+        ? transactions
+        : transactions.filter((t) => (categoryTypeById.get(t.categoryId) ?? "EXPENSE") === typeFilter);
+
+    const sorted = [...filtered];
+    if (sortBy === "newest") {
+      sorted.sort((a, b) => b.transactionDate.localeCompare(a.transactionDate));
+    } else if (sortBy === "highest") {
+      sorted.sort((a, b) => b.amount - a.amount);
+    } else {
+      sorted.sort((a, b) => a.amount - b.amount);
+    }
+    return sorted;
+  }, [transactions, typeFilter, sortBy, categoryTypeById]);
 
   function handleLogout() {
     removeToken();
@@ -220,7 +254,7 @@ export default function TransactionsPage() {
 
           {!listError && loading && <p className="text-[14px] text-[#0E1420]/45">Carregando transações…</p>}
 
-          {!listError && !loading && sortedTransactions.length === 0 && (
+          {!listError && !loading && transactions.length === 0 && (
             <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[#E4E7E2] bg-white px-8 py-16 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#E4E7E2] bg-[#F5F6F4] text-[#0E1420]">
                 <Receipt className="h-5 w-5" strokeWidth={1.75} />
@@ -239,9 +273,68 @@ export default function TransactionsPage() {
             </div>
           )}
 
-          {!listError && !loading && sortedTransactions.length > 0 && (
+          {!listError && !loading && transactions.length > 0 && (
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                {TYPE_FILTER_ORDER.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setTypeFilter(option)}
+                    className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors duration-200 ${
+                      typeFilter === option
+                        ? "bg-[#0E1420] text-white"
+                        : "border border-[#E4E7E2] bg-white text-[#0E1420]/60 hover:border-[#0E1420]/30 hover:text-[#0E1420]"
+                    }`}
+                  >
+                    {TYPE_FILTER_LABELS[option]}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label htmlFor="transaction-sort" className="text-[13px] text-[#0E1420]/45">
+                  Ordenar por
+                </label>
+                <div className="relative">
+                  <select
+                    id="transaction-sort"
+                    value={sortBy}
+                    onChange={(event) => setSortBy(event.target.value as SortOption)}
+                    className="appearance-none rounded-full border border-[#E4E7E2] bg-white py-1.5 pl-3.5 pr-8 text-[13px] font-medium text-[#0E1420] outline-none transition-all duration-200 focus:border-[#4A3AEB] focus:ring-4 focus:ring-[#4A3AEB]/10"
+                  >
+                    {SORT_ORDER.map((option) => (
+                      <option key={option} value={option}>
+                        {SORT_LABELS[option]}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#0E1420]/35"
+                    strokeWidth={1.75}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!listError && !loading && transactions.length > 0 && visibleTransactions.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-[#E4E7E2] bg-white px-8 py-16 text-center">
+              <p className="text-[15px] font-medium text-[#0E1420]">Nenhuma transação encontrada</p>
+              <p className="mt-2 text-[13px] text-[#0E1420]/55">Tente outro filtro.</p>
+              <button
+                type="button"
+                onClick={() => setTypeFilter("ALL")}
+                className="mt-3 text-[13px] font-medium text-[#4A3AEB] transition-colors duration-200 hover:text-[#0E1420]"
+              >
+                Limpar filtro
+              </button>
+            </div>
+          )}
+
+          {!listError && !loading && visibleTransactions.length > 0 && (
             <div className="overflow-hidden rounded-2xl border border-[#E4E7E2] bg-white">
-              {sortedTransactions.map((transaction, index) => {
+              {visibleTransactions.map((transaction, index) => {
                 const categoryType = categoryTypeById.get(transaction.categoryId) ?? "EXPENSE";
                 return (
                   <div
