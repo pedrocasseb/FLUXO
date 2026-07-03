@@ -23,8 +23,8 @@ import {
   type CategoryType,
   type Transaction,
 } from "../lib/api";
+import { formatCurrency } from "../lib/format";
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
 
 const AMOUNT_STYLES: Record<CategoryType, string> = {
@@ -358,7 +358,7 @@ export default function TransactionsPage() {
                     <div className="flex items-center gap-3">
                       <span className={`whitespace-nowrap text-[14px] font-medium ${AMOUNT_STYLES[categoryType]}`}>
                         {AMOUNT_SIGN[categoryType]}
-                        {currencyFormatter.format(transaction.amount)}
+                        {formatCurrency(transaction.amount)}
                       </span>
                       <div className="flex items-center gap-1">
                         <button

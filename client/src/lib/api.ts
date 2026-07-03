@@ -132,6 +132,43 @@ export function deleteTransaction(id: string) {
   return authedSend<void>("DELETE", `/api/transactions/${id}`);
 }
 
+export type ComparisonDetail = {
+  current: number;
+  previous: number;
+  difference: number;
+  percentage: number;
+};
+
+export type DashboardData = {
+  summary: {
+    balance: number;
+    income: number;
+    expense: number;
+    investment: number;
+    saving: number;
+  };
+  comparisons: {
+    income: ComparisonDetail;
+    expense: ComparisonDetail;
+    investment: ComparisonDetail;
+    saving: ComparisonDetail;
+  };
+  insights: string[];
+  expensesByCategory: { category: string; amount: number; percentage: number }[];
+  monthlyEvolution: {
+    month: string;
+    income: number;
+    expense: number;
+    investment: number;
+    saving: number;
+  }[];
+  projections: { projectedExpense: number; projectedInvestment: number };
+};
+
+export function getDashboard() {
+  return authedGet<DashboardData>("/api/dashboard");
+}
+
 const TOKEN_KEY = "fluxo_token";
 
 export function saveToken(token: string) {
