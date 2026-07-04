@@ -17,6 +17,12 @@ O ambiente de banco de dados é configurado via contêiner Docker e gerenciado p
 - **Mecanismo de Geração do Schema:**
   - Atualmente configurado como `spring.jpa.hibernate.ddl-auto: update`, onde o Hibernate sincroniza a estrutura automaticamente com base nas entidades Java.
   - O Flyway está configurado no projeto para migrações futuras, mas atualmente encontra-se desativado (`spring.flyway.enabled: false`).
+  - **Limitação conhecida:** `ddl-auto: update` cria a CHECK constraint `categories_type_check` (a partir do enum `CategoryType`) na primeira vez que a tabela é criada, mas **não a atualiza** em bancos já existentes se o enum ganhar um novo valor depois. Um banco criado antes do valor `INVESTMENT` existir vai rejeitar inserts com esse tipo (`violates check constraint "categories_type_check"`) até rodar manualmente:
+    ```sql
+    ALTER TABLE categories DROP CONSTRAINT categories_type_check;
+    ALTER TABLE categories ADD CONSTRAINT categories_type_check CHECK (type IN ('INCOME','EXPENSE','INVESTMENT'));
+    ```
+    Bancos criados do zero com o código atual não têm esse problema.
 
 ---
 

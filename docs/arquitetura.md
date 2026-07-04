@@ -60,9 +60,10 @@ A segurança é implementada utilizando **Spring Security** de forma stateless b
 
 ## 4. Arquitetura do Frontend (Client)
 
-O frontend é focado em alta performance e design premium ("Stripi"):
-
-- **Tecnologias**: React 19, Vite (para build ultrarrápido) e TypeScript (segurança e tipagem).
-- **Estilização**: TailwindCSS v4 com arquivos CSS customizados para tokens visuais do design system (Indigo Elétrico, Canvas Off-White, font Inter com tracking negativo).
-- **Consumo de API**: Realizado através de requisições assíncronas enviando o Token JWT armazenado com segurança no cliente.
-- **Dashboard Financeiro**: Consome o endpoint consolidado `GET /api/dashboard` em uma única chamada para evitar múltiplos requests.
+- **Tecnologias**: React 19, React Router 7, Vite e TypeScript.
+- **Estilização**: TailwindCSS v4 com tokens de design definidos em [index.css](file:///Users/casseb/Develop/dev/projects/FLUXO/client/src/index.css) — fundo cream (`#F5F6F4`), texto ink (`#0E1420`), acento roxo/azul (`#4A3AEB`/`#4F8CFF`), tipografia Bricolage Grotesque (display) + Instrument Sans (corpo) + IBM Plex Mono (dados/eyebrows). Cores semânticas por tipo de categoria (verde/marrom/azul para Receita/Despesa/Investimento) são reusadas de forma consistente em badges, gráficos e listas.
+- **Componentes shadcn/ui**: `Calendar`, `Popover` e `Button` em `client/src/components/ui/` são vendorizados manualmente (código copiado, não instalado via CLI) porque o registro `ui.shadcn.com` é bloqueado neste ambiente de sandbox; foram restilizados com os tokens do projeto.
+- **Autenticação no cliente**: token JWT guardado em `localStorage` (`client/src/lib/api.ts`); `ProtectedRoute` bloqueia rotas autenticadas sem token, `RedirectIfAuthenticated` manda quem já está logado direto para `/dashboard` ao acessar `/`.
+- **Consumo de API**: `fetch` simples com helpers em `lib/api.ts` (`authedGet`/`authedSend`), sem biblioteca de data-fetching. Erros da API (formato descrito em [api.md](file:///Users/casseb/Develop/dev/projects/FLUXO/docs/api.md#formato-de-erros)) viram `ApiError` e aparecem inline nos formulários.
+- **Dashboard Financeiro**: consome o endpoint consolidado `GET /api/dashboard` em uma única chamada para evitar múltiplos requests. O gráfico de evolução mensal é SVG desenhado à mão (sem biblioteca de gráficos), reaproveitando a mesma estética da linha de fluxo de caixa usada na landing page.
+- **CORS**: o backend libera explicitamente `http://localhost:5173` (`SecurityConfig.corsConfigurationSource`) — rodar o client em outra porta/host exige atualizar essa configuração.

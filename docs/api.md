@@ -18,12 +18,14 @@ Endpoints públicos para registro e login de usuários.
     "password": "senha_segura_123"
   }
   ```
+- **Validação:** `name` obrigatório; `email` obrigatório e formato válido; `password` obrigatório, mínimo 6 caracteres. Erros de validação retornam `400` (ver [Formato de Erros](#formato-de-erros)). E-mail duplicado retorna `409 Conflict`.
 - **Resposta (201 Created):**
   ```json
   {
     "id": "uuid-do-usuario",
     "name": "Nome do Usuário",
-    "email": "usuario@exemplo.com"
+    "email": "usuario@exemplo.com",
+    "message": "User registered successfully"
   }
   ```
 
@@ -39,9 +41,15 @@ Endpoints públicos para registro e login de usuários.
 - **Resposta (200 OK):**
   ```json
   {
-    "token": "token-jwt-gerado"
+    "token": "token-jwt-gerado",
+    "user": {
+      "id": "uuid-do-usuario",
+      "name": "Nome do Usuário",
+      "email": "usuario@exemplo.com"
+    }
   }
   ```
+- **Credenciais inválidas:** `401 Unauthorized` com `{ "message": "E-mail ou senha inválidos" }`.
 
 ### 1.3. Validar Sessão Atual
 - **Rota:** `GET /auth/me`
@@ -125,6 +133,7 @@ Requer autenticação JWT. As categorias são automaticamente isoladas pelo usu�
     "type": "EXPENSE" // Valores válidos: INCOME, EXPENSE, INVESTMENT
   }
   ```
+- **Validação:** `name` obrigatório (não vazio); `type` obrigatório e deve ser um dos três valores do enum. Nome vazio/ausente ou tipo inválido retornam `400` (ver [Formato de Erros](#formato-de-erros)).
 - **Resposta (201 Created):**
   ```json
   {
@@ -179,12 +188,15 @@ Requer autenticação JWT. As categorias são automaticamente isoladas pelo usu�
 ### 3.5. Excluir Categoria
 - **Rota:** `DELETE /api/categories/{id}`
 - **Resposta (204 No Content)**
+- **Conflito:** se existirem transações vinculadas a esta categoria, retorna `409 Conflict` com `{ "message": "Este registro está em uso por outro recurso e não pode ser excluído" }`. Exclua ou reatribua as transações antes.
 
 ---
 
 ## 4. Transações Financeiras (`/api/transactions`)
 
-Requer autenticação JWT. Se uma transação for criada sem categoria, ela será associada à categoria padrão `"Other"`.
+Requer autenticação JWT.
+
+**Resolução de categoria padrão ("Other"):** `categoryId` é opcional tanto em criar quanto em atualizar. Quando omitido, o backend usa/cria uma categoria `"Other"` — mas existe **uma "Other" por tipo** (`INCOME`, `EXPENSE`, `INVESTMENT`), não uma única compartilhada. Nesse caso, envie também o campo `type` para indicar qual "Other" usar; se `type` também for omitido, o padrão é `EXPENSE`. Se `categoryId` for enviado, `type` é ignorado (o tipo já vem da categoria escolhida).
 
 ### 4.1. Criar Transação
 - **Rota:** `POST /api/transactions`
@@ -194,9 +206,11 @@ Requer autenticação JWT. Se uma transação for criada sem categoria, ela ser�
     "description": "Compra de Mercado",
     "amount": 250.50,
     "transactionDate": "2026-06-15",
-    "categoryId": "uuid-da-categoria" // Opcional (se omitido, associa à categoria "Other")
+    "categoryId": "uuid-da-categoria", // Opcional
+    "type": "EXPENSE" // Opcional; só usado quando categoryId é omitido
   }
   ```
+- **Validação:** `description` obrigatório; `amount` obrigatório e maior que zero; `transactionDate` obrigatório. `categoryId`, quando enviado, precisa existir e pertencer ao usuário autenticado (senão `404`).
 - **Resposta (201 Created):**
   ```json
   {
@@ -204,11 +218,8 @@ Requer autenticação JWT. Se uma transação for criada sem categoria, ela ser�
     "description": "Compra de Mercado",
     "amount": 250.50,
     "transactionDate": "2026-06-15",
-    "category": {
-      "id": "uuid-da-categoria",
-      "name": "Alimentação",
-      "type": "EXPENSE"
-    }
+    "categoryId": "uuid-da-categoria",
+    "categoryName": "Alimentação"
   }
   ```
 
@@ -222,11 +233,8 @@ Requer autenticação JWT. Se uma transação for criada sem categoria, ela ser�
       "description": "Compra de Mercado",
       "amount": 250.50,
       "transactionDate": "2026-06-15",
-      "category": {
-        "id": "uuid-da-categoria",
-        "name": "Alimentação",
-        "type": "EXPENSE"
-      }
+      "categoryId": "uuid-da-categoria",
+      "categoryName": "Alimentação"
     }
   ]
   ```
@@ -240,23 +248,22 @@ Requer autenticação JWT. Se uma transação for criada sem categoria, ela ser�
     "description": "Compra de Mercado",
     "amount": 250.50,
     "transactionDate": "2026-06-15",
-    "category": {
-      "id": "uuid-da-categoria",
-      "name": "Alimentação",
-      "type": "EXPENSE"
-    }
+    "categoryId": "uuid-da-categoria",
+    "categoryName": "Alimentação"
   }
   ```
 
 ### 4.4. Atualizar Transação
 - **Rota:** `PUT /api/transactions/{id}`
+- **Semântica de atualização parcial:** `description`, `amount` e `transactionDate` só são alterados se enviados (omitir mantém o valor atual). **`categoryId`/`type` são a exceção:** são sempre resolvidos a cada chamada — omitir `categoryId` reatribui a transação para a "Other" do `type` informado (ou `EXPENSE` por padrão), mesmo que a transação já tivesse uma categoria diferente. Envie `categoryId` explicitamente para preservar a categoria atual.
 - **Corpo da Requisição (JSON):**
   ```json
   {
     "description": "Compra de Mercado Semanal",
     "amount": 280.00,
     "transactionDate": "2026-06-15",
-    "categoryId": "uuid-da-categoria"
+    "categoryId": "uuid-da-categoria", // Opcional — omitir usa/cria a "Other" do `type`
+    "type": "EXPENSE" // Opcional; só usado quando categoryId é omitido
   }
   ```
 - **Resposta (200 OK):**
@@ -266,11 +273,8 @@ Requer autenticação JWT. Se uma transação for criada sem categoria, ela ser�
     "description": "Compra de Mercado Semanal",
     "amount": 280.00,
     "transactionDate": "2026-06-15",
-    "category": {
-      "id": "uuid-da-categoria",
-      "name": "Alimentação",
-      "type": "EXPENSE"
-    }
+    "categoryId": "uuid-da-categoria",
+    "categoryName": "Alimentação"
   }
   ```
 
@@ -359,3 +363,32 @@ Requer autenticação JWT. Retorna o consolidador de dados para montagem do Dash
     }
   }
   ```
+- **`summary`** é acumulado desde o início (todas as transações). **`comparisons`** é o mês atual vs. o mês anterior. **`expensesByCategory`** só considera categorias do tipo `EXPENSE`, acumulado histórico. **`insights`** são frases já prontas em português, geradas pelo backend — o client só precisa listá-las.
+
+---
+
+## Formato de Erros
+
+Todo erro (exceto 401/403 padrão do Spring Security) segue o mesmo formato, produzido pelo `GlobalExceptionHandler`:
+
+```json
+{
+  "timestamp": "2026-07-03T17:13:28.30",
+  "status": 400,
+  "error": "Validation Error",
+  "message": "Dados inválidos",
+  "path": "/api/categories",
+  "fields": { "name": "Name is required" }
+}
+```
+
+`fields` só aparece em erros de validação (`400`) e mapeia nome do campo → mensagem. Nos demais casos vem omitido.
+
+| Status | Quando acontece |
+| :--- | :--- |
+| `400 Bad Request` | Falha de validação Bean Validation (`@NotBlank`, `@NotNull`, `@Positive`, `@Email`, etc.) — inclui `fields`. Também usado para JSON malformado ou valor de enum inválido (ex.: `"type": "NAOEXISTE"`) — sem `fields`. |
+| `401 Unauthorized` | Credenciais de login inválidas, ou token ausente/expirado/inválido em rota protegida. |
+| `403 Forbidden` | Usuário autenticado tentando acessar recurso sem permissão. |
+| `404 Not Found` | Categoria ou transação não encontrada (ou não pertence ao usuário autenticado — o isolamento por usuário faz um recurso de outro usuário parecer inexistente). |
+| `409 Conflict` | E-mail já cadastrado no registro; ou tentativa de excluir uma categoria com transações vinculadas (violação de integridade referencial). |
+| `500 Internal Server Error` | Erro inesperado não tratado — não deveria acontecer em uso normal; se acontecer, é bug. |

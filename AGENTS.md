@@ -21,7 +21,7 @@ O **FLUXO** é um sistema de administração financeira projetado para fornecer 
 - **Framework:** Spring Boot 4.0.6
 - **Persistência:** Spring Data JPA / Hibernate
 - **Banco de Dados:** PostgreSQL 17
-- **Segurança:** Spring Security (configurado com permissão total em ambiente de dev)
+- **Segurança:** Spring Security stateless com JWT. Só `/auth/register`, `/auth/login` e as rotas do Swagger são públicas; todo o resto exige `Authorization: Bearer <token>`.
 - **Documentação:** Springdoc OpenAPI / Swagger UI
 - **Utilitários:** Lombok
 - **Gerenciador de Dependências:** Maven
@@ -83,8 +83,13 @@ erDiagram
 
 2.  **Category ([Category.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/category/Category.java)):**
     - Tabela: `categories`
-    - Campos: `id`, `name`, `type` (mapeado para o enum `CategoryType` como String: `INCOME` ou `EXPENSE`), `user_id` (Chave Estrangeira apontando para `users`).
+    - Campos: `id`, `name`, `type` (mapeado para o enum `CategoryType` como String: `INCOME`, `EXPENSE` ou `INVESTMENT`), `user_id` (Chave Estrangeira apontando para `users`).
     - Relacionamentos: `ManyToOne` com `User` (carregamento LAZY).
+    - **Atenção (Hibernate `ddl-auto: update`):** o Postgres tem uma CHECK constraint (`categories_type_check`) gerada a partir do enum. Se o enum ganhar um valor novo, o Hibernate **não** atualiza a constraint existente em bancos já criados — só em bancos novos. Se um insert falhar com `violates check constraint "categories_type_check"`, rode manualmente:
+      ```sql
+      ALTER TABLE categories DROP CONSTRAINT categories_type_check;
+      ALTER TABLE categories ADD CONSTRAINT categories_type_check CHECK (type IN ('INCOME','EXPENSE','INVESTMENT'));
+      ```
 
 3.  **FinancialTransaction ([FinancialTransaction.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/transaction/FinancialTransaction.java)):**
     - Tabela: `transactions`
@@ -95,30 +100,34 @@ erDiagram
 
 ## 🎨 4. Alinhamento de Design (Frontend)
 
-O frontend do FLUXO deve refletir a estética e as regras especificadas no documento [desing.md](file:///Users/casseb/Develop/dev/projects/FLUXO/docs/desing.md). Este design é fortemente inspirado no estilo visual da Stripe ("Stripi"), caracterizado por cores escuras profundas, um tom de azul/índigo elétrico, e o uso de degradês atmosféricos.
+Não existe um `docs/desing.md` — o design system real vive no código: tokens em [index.css](file:///Users/casseb/Develop/dev/projects/FLUXO/client/src/index.css) e nos componentes já construídos em `client/src/components/`. Qualquer tela nova deve derivar destes tokens em vez de inventar cores/fontes novas.
 
-### Paleta de Cores e Tokens
+### Paleta de Cores
 
-Qualquer componente adicionado ao frontend deve utilizar estes códigos de cor exatos ou variáveis equivalentes (a serem configuradas no TailwindCSS):
+- **Fundo padrão:** Cream (`#F5F6F4`) para páginas; branco (`#ffffff`) para cards/painéis sobre o fundo cream.
+- **Texto/Ink principal:** `#0E1420` (nunca preto puro `#000000`).
+- **Acento de marca:** Roxo (`#4A3AEB`) para CTAs, links e eyebrows; usado em gradiente com Azul (`#4F8CFF`) na marca (`FlowMark`) e em elementos ilustrativos (linha de fluxo de caixa).
+- **Bordas/divisores:** `#E4E7E2`.
+- **Cores semânticas por `CategoryType`** (usadas de forma consistente em badges, gráficos e valores monetários):
+  - `INCOME` (Receita): verde `#1C8C6C`
+  - `EXPENSE` (Despesa): marrom/âmbar `#9A5B2E`
+  - `INVESTMENT` (Investimento): azul `#2E5CC4`
+- **Erro/destrutivo:** texto `#A5402F` sobre fundo `#FBEEE9`, borda `#E8B8AE`.
 
-- **Principal:** Indigo Elétrico (`#533afd`) — reservado apenas para botões de CTA principal e destaques de links.
-- **Fundo padrão:** Canvas Branco (`#ffffff`) para seções comuns, e Off-White Gelado (`#f6f9fc`) para cartões e faixas de conteúdo secundário.
-- **Texto Principal:** Navy Escuro Ink (`#0d253d`) — evite usar preto puro (`#000000`).
-- **Acento Cream:** Cream Quente (`#f5e9d4`) — usado em cartões de destaque específicos para quebrar o padrão frio de cores.
-- **Linhas e Divisores:** Hairline Cinza-Azulado (`#e3e8ee` para tabelas/borda geral, `#a8c3de` para inputs).
+### Tipografia
 
-### Regras de Tipografia e Números
+Três famílias, cada uma com um papel fixo (ver `--font-display`, `--font-body`, `--font-mono` em `index.css`):
+- **Display** (`Bricolage Grotesque`): headlines, títulos de seção, valores monetários de destaque.
+- **Body** (`Instrument Sans`): texto corrido, labels, botões.
+- **Mono** (`IBM Plex Mono`): eyebrows em uppercase com tracking largo, dados tabulares/timestamps.
 
-- **Fontes:** Utilizar a fonte **Inter** (peso `300` para títulos e parágrafos normais, `400` para botões e captions).
-- **Títulos e Displays:** Devem ter peso **300** e **tracking (letter-spacing) negativo** (de `-0.2px` a `-1.4px` dependendo do tamanho). Títulos com peso normal ou negrito quebram a estética editorial leve.
-- **Valores Financeiros:** **OBRIGATÓRIO** o uso da propriedade `font-feature-settings: "tnum"` (tabular figures) em tabelas ou elementos que mostrem valores monetários. Isso garante que os números tenham largura idêntica, alinhando as colunas numéricas perfeitamente.
-- **Substituição Global:** Configurar `font-feature-settings: "ss01"` globalmente no elemento `body` para habilitar caracteres estilizados.
+### Padrões de Componente Estabelecidos
 
-### Elementos Visuais Obrigatórios nas Páginas
-
-- **Gradient Mesh Backdrop:** A parte superior da tela principal ou landing page deve ter um degradê horizontal orgânico (SVG ou imagem) mesclando tons pastéis de creme, laranja sherbet, lavanda, índigo elétrico e rosa rubi.
-- **Pill Buttons:** Todos os botões devem ter bordas totalmente arredondadas (`rounded-full`, 9999px) com espaçamento apertado (`8px 16px` para médio, `6px 12px` para pequeno).
-- **Composited Dashboard Mockup:** As exibições de dados do dashboard devem parecer painéis ou consoles integrados em fundo escuro/navy (`#1c1e54` ou `#0d253d`), com sombras sutis (Nível 2).
+- **Botões:** `rounded-full`, variante primária `bg-[#0E1420]` com `hover:bg-[#4A3AEB]`.
+- **Cards/painéis:** `rounded-2xl`, `border border-[#E4E7E2]`, `bg-white`.
+- **Modais/popovers:** entram e saem com fade+scale (`menu-pop-in`/`menu-pop-out`/`modal-pop-in`/`modal-pop-out` em `index.css`), nunca somem instantaneamente — usam o hook `useDelayedMount` para animar a saída antes de desmontar.
+- **Motion:** curva de easing padrão do site inteiro é `cubic-bezier(0.22, 1, 0.36, 1)` (`--default-transition-timing-function` em `index.css`, também exportada como `EASE_FLUID` em `lib/motion.ts`). Toda animação nova deve reusar esses tokens, não inventar timing novo.
+- **shadcn/ui:** o Calendar/Popover/Button em `client/src/components/ui/` são componentes shadcn vendorizados manualmente (o registro `ui.shadcn.com` é bloqueado neste ambiente de sandbox) e já restilizados com os tokens acima em vez do tema padrão do shadcn.
 
 ---
 
@@ -149,7 +158,7 @@ Qualquer Agente de IA trabalhando neste projeto deve seguir rigorosamente as reg
 
 - **Sem Placeholders:** Não escreva códigos com comentários como `// TODO: implementar depois` ou métodos que retornam valores estáticos em produção. Escreva a implementação real e completa.
 - **Preservar Comentários e Licenças:** Nunca altere ou apague comentários, cabeçalhos de licença ou docstrings que já existem nas classes, a menos que seja explicitamente solicitado ou que o código antigo esteja sendo substituído por completo.
-- **Estética Visual Premium:** Ao mexer no código do frontend (`/client`), nunca use designs simplistas. Siga à risca os componentes, fontes e cores do design "Stripi" descrito em `docs/desing.md`. Uma interface genérica é considerada uma falha grave de implementação.
+- **Estética Visual Premium:** Ao mexer no código do frontend (`/client`), nunca use designs simplistas. Siga à risca os tokens e padrões de componente descritos na seção 4 deste documento. Uma interface genérica é considerada uma falha grave de implementação.
 - **Links para Arquivos:** Ao sugerir ou responder ao usuário, crie links clicáveis com o esquema de markdown padrão contendo `file://` apontando para os arquivos do workspace (ex: `[User.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/user/User.java)`).
 
 ---
@@ -191,18 +200,25 @@ pnpm dev
 
 ## 📋 8. Roadmap e Status de Implementação
 
-O projeto está em fase inicial de desenvolvimento. Abaixo está a lista de tarefas pendentes e áreas que necessitam de implementação:
-
-| Módulo     | Funcionalidade / Tarefa                                                 |    Status    | Arquivo / Diretório Principal     |
-| :--------- | :---------------------------------------------------------------------- | :----------: | :-------------------------------- |
-| **Server** | Criação das Entidades Base (`User`, `Category`, `FinancialTransaction`) | ✅ Concluído | `com.pedrocasseb.fluxo.*`         |
-| **Server** | Criação de Controllers básicos para transações e categorias             | ✅ Concluído | `com.pedrocasseb.fluxo.*`         |
-| **Server** | Implementação de Autenticação JWT no pacote `auth`                      | ✅ Concluído | `com.pedrocasseb.fluxo.auth`      |
-| **Server** | Lógica de agregação de relatórios no pacote `analytics`                 | ✅ Concluído | `com.pedrocasseb.fluxo.analytics` |
-| **Client** | Configuração inicial do projeto React com TailwindCSS v4                | ✅ Concluído | `client/`                         |
-| **Client** | Implementação da estrutura de páginas do Dashboard (Layout base)        | ⏳ Pendente  | `client/src/`                     |
-| **Client** | Integração com as APIs de transações e categorias                       | ⏳ Pendente  | `client/src/`                     |
-| **Client** | Implementação de Gráficos e Relatórios visuais (com estilo Stripi)      | ⏳ Pendente  | `client/src/`                     |
+| Módulo     | Funcionalidade / Tarefa                                                     |    Status    | Arquivo / Diretório Principal                    |
+| :--------- | :--------------------------------------------------------------------------- | :----------: | :------------------------------------------------ |
+| **Server** | Entidades Base (`User`, `Category`, `FinancialTransaction`)                | ✅ Concluído | `com.pedrocasseb.fluxo.*`                          |
+| **Server** | Autenticação JWT (`/auth/register`, `/auth/login`, `/auth/me`)             | ✅ Concluído | `com.pedrocasseb.fluxo.auth`                       |
+| **Server** | CRUD de Categorias e Transações com isolamento por usuário                 | ✅ Concluído | `com.pedrocasseb.fluxo.category`, `.transaction`   |
+| **Server** | Categoria padrão "Other" por tipo (Receita/Despesa/Investimento)           | ✅ Concluído | `TransactionService.resolveCategory`               |
+| **Server** | Agregação de dashboard (`/api/dashboard`: resumo, comparações, insights)   | ✅ Concluído | `com.pedrocasseb.fluxo.analytics`                  |
+| **Server** | Validação de entrada (`@Valid`) + tratamento de erro (409 conflito de FK, 400 JSON malformado) | ✅ Concluído | `GlobalExceptionHandler`                           |
+| **Server** | CORS liberado para `http://localhost:5173`                                | ✅ Concluído | `SecurityConfig.corsConfigurationSource`           |
+| **Client** | Landing page (hero, features, pricing)                                    | ✅ Concluído | `client/src/pages/LandingPage.tsx`                 |
+| **Client** | Login / Cadastro com integração real à API                                | ✅ Concluído | `client/src/pages/LoginPage.tsx`, `SignupPage.tsx` |
+| **Client** | Rotas protegidas (`ProtectedRoute`) e redirect se já logado (`RedirectIfAuthenticated`) | ✅ Concluído | `client/src/components/auth/`                      |
+| **Client** | Dashboard com saldo, cards de comparação mensal, gráfico de evolução (SVG) e ranking de despesas por categoria | ✅ Concluído | `client/src/pages/DashboardPage.tsx`, `components/dashboard/` |
+| **Client** | CRUD de Categorias (colunas por tipo) e Transações (filtros, ordenação, date picker shadcn) | ✅ Concluído | `client/src/pages/CategoriesPage.tsx`, `TransactionsPage.tsx` |
+| **Client** | Menu de usuário com logout (popover)                                        | ✅ Concluído | `client/src/components/dashboard/UserMenu.tsx`     |
+| **Pendente** | Página de perfil/configurações de conta (endpoints `/api/users/*` já existem, sem UI) | ⏳ Pendente  | `com.pedrocasseb.fluxo.user`                       |
+| **Pendente** | Exportação de relatórios / CSV (mencionado na landing, não implementado)  | ⏳ Pendente  | —                                                   |
+| **Pendente** | Fluxo de "esqueci minha senha" (sem endpoint no backend ainda)            | ⏳ Pendente  | —                                                   |
+| **Pendente** | Migração de `ddl-auto: update` para Flyway (já no classpath, desativado)  | ⏳ Pendente  | `application.yaml`                                 |
 
 ## Antes de criar um novo arquivo:
 
