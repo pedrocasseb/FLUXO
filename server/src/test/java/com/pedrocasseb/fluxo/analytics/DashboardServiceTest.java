@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 import com.pedrocasseb.fluxo.analytics.dto.*;
 import com.pedrocasseb.fluxo.category.Category;
 import com.pedrocasseb.fluxo.category.CategoryType;
+import com.pedrocasseb.fluxo.subscription.SubscriptionService;
 import com.pedrocasseb.fluxo.transaction.FinancialTransaction;
 import com.pedrocasseb.fluxo.transaction.TransactionRepository;
 import com.pedrocasseb.fluxo.user.User;
@@ -24,6 +25,9 @@ class DashboardServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private SubscriptionService subscriptionService;
+
     @InjectMocks
     private DashboardService dashboardService;
 
@@ -37,6 +41,17 @@ class DashboardServiceTest {
         testUser.setEmail("pedro@example.com");
     }
 
+    private FinancialTransaction transaction(
+            String description, BigDecimal amount, LocalDate date, User user, Category category) {
+        FinancialTransaction transaction = new FinancialTransaction();
+        transaction.setDescription(description);
+        transaction.setAmount(amount);
+        transaction.setTransactionDate(date);
+        transaction.setUser(user);
+        transaction.setCategory(category);
+        return transaction;
+    }
+
     @Test
     void getDashboard_ShouldCalculateSummaryCorrectly() {
         LocalDate now = LocalDate.now();
@@ -47,9 +62,9 @@ class DashboardServiceTest {
         Category investmentCat = new Category(null, "Ações", CategoryType.INVESTMENT, testUser, new ArrayList<>());
 
         // Transactions
-        FinancialTransaction tx1 = new FinancialTransaction(null, "Salário", BigDecimal.valueOf(5000.0), now, testUser, incomeCat, null, null);
-        FinancialTransaction tx2 = new FinancialTransaction(null, "Mercado", BigDecimal.valueOf(1500.0), now, testUser, expenseCat, null, null);
-        FinancialTransaction tx3 = new FinancialTransaction(null, "Investimento", BigDecimal.valueOf(500.0), now, testUser, investmentCat, null, null);
+        FinancialTransaction tx1 = transaction("Salário", BigDecimal.valueOf(5000.0), now, testUser, incomeCat);
+        FinancialTransaction tx2 = transaction("Mercado", BigDecimal.valueOf(1500.0), now, testUser, expenseCat);
+        FinancialTransaction tx3 = transaction("Investimento", BigDecimal.valueOf(500.0), now, testUser, investmentCat);
 
         when(transactionRepository.findByUser(testUser)).thenReturn(List.of(tx1, tx2, tx3));
 
@@ -76,12 +91,12 @@ class DashboardServiceTest {
         Category expenseCat = new Category(null, "Alimentação", CategoryType.EXPENSE, testUser, new ArrayList<>());
 
         // Current month
-        FinancialTransaction curIncome = new FinancialTransaction(null, "Salário", BigDecimal.valueOf(6000.0), now, testUser, incomeCat, null, null);
-        FinancialTransaction curExpense = new FinancialTransaction(null, "Alimentação", BigDecimal.valueOf(2000.0), now, testUser, expenseCat, null, null);
+        FinancialTransaction curIncome = transaction("Salário", BigDecimal.valueOf(6000.0), now, testUser, incomeCat);
+        FinancialTransaction curExpense = transaction("Alimentação", BigDecimal.valueOf(2000.0), now, testUser, expenseCat);
 
         // Previous month
-        FinancialTransaction prevIncome = new FinancialTransaction(null, "Salário", BigDecimal.valueOf(5000.0), lastMonth, testUser, incomeCat, null, null);
-        FinancialTransaction prevExpense = new FinancialTransaction(null, "Alimentação", BigDecimal.valueOf(1600.0), lastMonth, testUser, expenseCat, null, null);
+        FinancialTransaction prevIncome = transaction("Salário", BigDecimal.valueOf(5000.0), lastMonth, testUser, incomeCat);
+        FinancialTransaction prevExpense = transaction("Alimentação", BigDecimal.valueOf(1600.0), lastMonth, testUser, expenseCat);
 
         when(transactionRepository.findByUser(testUser)).thenReturn(List.of(curIncome, curExpense, prevIncome, prevExpense));
 
@@ -111,9 +126,9 @@ class DashboardServiceTest {
         Category foodCat = new Category(null, "Alimentação", CategoryType.EXPENSE, testUser, new ArrayList<>());
         Category transportCat = new Category(null, "Transporte", CategoryType.EXPENSE, testUser, new ArrayList<>());
 
-        FinancialTransaction food1 = new FinancialTransaction(null, "Restaurante", BigDecimal.valueOf(300.0), now, testUser, foodCat, null, null);
-        FinancialTransaction food2 = new FinancialTransaction(null, "Mercado", BigDecimal.valueOf(700.0), now, testUser, foodCat, null, null);
-        FinancialTransaction trans1 = new FinancialTransaction(null, "Combustível", BigDecimal.valueOf(500.0), now, testUser, transportCat, null, null);
+        FinancialTransaction food1 = transaction("Restaurante", BigDecimal.valueOf(300.0), now, testUser, foodCat);
+        FinancialTransaction food2 = transaction("Mercado", BigDecimal.valueOf(700.0), now, testUser, foodCat);
+        FinancialTransaction trans1 = transaction("Combustível", BigDecimal.valueOf(500.0), now, testUser, transportCat);
 
         when(transactionRepository.findByUser(testUser)).thenReturn(List.of(food1, food2, trans1));
 
@@ -143,10 +158,10 @@ class DashboardServiceTest {
         Category incomeCat = new Category(null, "Salário", CategoryType.INCOME, testUser, new ArrayList<>());
         Category expenseCat = new Category(null, "Alimentação", CategoryType.EXPENSE, testUser, new ArrayList<>());
 
-        FinancialTransaction tx1 = new FinancialTransaction(null, "Salário Jan", BigDecimal.valueOf(5000.0), jan, testUser, incomeCat, null, null);
-        FinancialTransaction tx2 = new FinancialTransaction(null, "Mercado Jan", BigDecimal.valueOf(2000.0), jan, testUser, expenseCat, null, null);
-        FinancialTransaction tx3 = new FinancialTransaction(null, "Salário Fev", BigDecimal.valueOf(5500.0), feb, testUser, incomeCat, null, null);
-        FinancialTransaction tx4 = new FinancialTransaction(null, "Mercado Fev", BigDecimal.valueOf(2200.0), feb, testUser, expenseCat, null, null);
+        FinancialTransaction tx1 = transaction("Salário Jan", BigDecimal.valueOf(5000.0), jan, testUser, incomeCat);
+        FinancialTransaction tx2 = transaction("Mercado Jan", BigDecimal.valueOf(2000.0), jan, testUser, expenseCat);
+        FinancialTransaction tx3 = transaction("Salário Fev", BigDecimal.valueOf(5500.0), feb, testUser, incomeCat);
+        FinancialTransaction tx4 = transaction("Mercado Fev", BigDecimal.valueOf(2200.0), feb, testUser, expenseCat);
 
         when(transactionRepository.findByUser(testUser)).thenReturn(List.of(tx1, tx2, tx3, tx4));
 
@@ -176,13 +191,13 @@ class DashboardServiceTest {
         Category expenseCat = new Category(null, "Alimentação", CategoryType.EXPENSE, testUser, new ArrayList<>());
         Category investmentCat = new Category(null, "Ações", CategoryType.INVESTMENT, testUser, new ArrayList<>());
 
-        FinancialTransaction tx1 = new FinancialTransaction(null, "Salário", BigDecimal.valueOf(5000.0), now, testUser, incomeCat, null, null);
-        FinancialTransaction tx2 = new FinancialTransaction(null, "Mercado Grande", BigDecimal.valueOf(650.0), now, testUser, expenseCat, null, null);
-        FinancialTransaction tx3 = new FinancialTransaction(null, "Investimento", BigDecimal.valueOf(300.0), now, testUser, investmentCat, null, null);
+        FinancialTransaction tx1 = transaction("Salário", BigDecimal.valueOf(5000.0), now, testUser, incomeCat);
+        FinancialTransaction tx2 = transaction("Mercado Grande", BigDecimal.valueOf(650.0), now, testUser, expenseCat);
+        FinancialTransaction tx3 = transaction("Investimento", BigDecimal.valueOf(300.0), now, testUser, investmentCat);
 
-        FinancialTransaction txPrev1 = new FinancialTransaction(null, "Salário", BigDecimal.valueOf(4500.0), lastMonth, testUser, incomeCat, null, null);
-        FinancialTransaction txPrev2 = new FinancialTransaction(null, "Mercado", BigDecimal.valueOf(550.0), lastMonth, testUser, expenseCat, null, null);
-        FinancialTransaction txPrev3 = new FinancialTransaction(null, "Investimento", BigDecimal.valueOf(250.0), lastMonth, testUser, investmentCat, null, null);
+        FinancialTransaction txPrev1 = transaction("Salário", BigDecimal.valueOf(4500.0), lastMonth, testUser, incomeCat);
+        FinancialTransaction txPrev2 = transaction("Mercado", BigDecimal.valueOf(550.0), lastMonth, testUser, expenseCat);
+        FinancialTransaction txPrev3 = transaction("Investimento", BigDecimal.valueOf(250.0), lastMonth, testUser, investmentCat);
 
         when(transactionRepository.findByUser(testUser)).thenReturn(List.of(tx1, tx2, tx3, txPrev1, txPrev2, txPrev3));
 
