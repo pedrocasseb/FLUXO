@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Receipt, Tags } from "lucide-react";
+import { Receipt, Repeat, Tags, Target } from "lucide-react";
 import FlowMark from "../components/FlowMark";
 import AppHeader from "../components/dashboard/AppHeader";
 import StatCard from "../components/dashboard/StatCard";
@@ -13,10 +13,14 @@ import {
   me,
   removeToken,
   getDashboard,
+  listGoals,
+  listSubscriptions,
   ApiError,
   type AuthUser,
   type DashboardData,
+  type Goal,
   type PaymentMethod,
+  type Subscription,
 } from "../lib/api";
 
 const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -26,10 +30,14 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Dinheiro",
 };
 
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
 
@@ -44,9 +52,12 @@ export default function DashboardPage() {
         navigate("/entrar", { replace: true });
       });
 
-    getDashboard()
-      .then((data) => {
-        if (active) setDashboard(data);
+    Promise.all([getDashboard(), listGoals(), listSubscriptions()])
+      .then(([dashboardData, goalsData, subscriptionsData]) => {
+        if (!active) return;
+        setDashboard(dashboardData);
+        setGoals(goalsData);
+        setSubscriptions(subscriptionsData);
       })
       .catch((err) => {
         if (active) {
@@ -63,6 +74,18 @@ export default function DashboardPage() {
       active = false;
     };
   }, [navigate]);
+
+  const activeGoals = useMemo(() => goals.filter((g) => !g.completed).slice(0, 4), [goals]);
+
+  const upcomingSubscriptions = useMemo(
+    () => [...subscriptions].sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate)).slice(0, 5),
+    [subscriptions],
+  );
+
+  const monthlySubscriptionsTotal = useMemo(
+    () => subscriptions.reduce((sum, s) => sum + s.amount, 0),
+    [subscriptions],
+  );
 
   function handleLogout() {
     removeToken();
@@ -169,6 +192,118 @@ export default function DashboardPage() {
                 isGood={dashboard.comparisons.saving.percentage >= 0}
                 accentColor="#4A3AEB"
               />
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <div className="rounded-2xl border border-[#E4E7E2] bg-white p-6">
+                <div className="flex items-center justify-between">
+                  <h2
+                    className="text-[14px] font-semibold text-[#0E1420]"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    Metas
+                  </h2>
+                  <Link
+                    to="/metas"
+                    className="text-[12px] font-medium text-[#4A3AEB] transition-colors duration-200 hover:text-[#0E1420]"
+                  >
+                    Ver todas
+                  </Link>
+                </div>
+                <p className="mt-1 text-[12px] text-[#0E1420]/45">Progresso das suas metas ativas.</p>
+                <div className="mt-6">
+                  {activeGoals.length === 0 ? (
+                    <div className="flex min-h-[120px] flex-col items-center justify-center gap-3 text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E4E7E2] bg-[#F5F6F4] text-[#0E1420]/50">
+                        <Target className="h-4 w-4" strokeWidth={1.75} />
+                      </div>
+                      <p className="text-[13px] text-[#0E1420]/45">Nenhuma meta ativa ainda.</p>
+                      <Link
+                        to="/metas"
+                        className="text-[13px] font-medium text-[#4A3AEB] transition-colors duration-200 hover:text-[#0E1420]"
+                      >
+                        Criar meta
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      {activeGoals.map((goal) => {
+                        const progress = Math.min(100, (goal.currentAmount / goal.targetAmount) * 100);
+                        return (
+                          <div key={goal.id}>
+                            <div className="flex items-center justify-between text-[13px]">
+                              <span className="font-medium text-[#0E1420]">{goal.name}</span>
+                              <span className="text-[#0E1420]/55">
+                                {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+                              </span>
+                            </div>
+                            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#F5F6F4]">
+                              <div
+                                className="h-full rounded-full bg-[#4A3AEB] transition-all duration-700"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#E4E7E2] bg-white p-6">
+                <div className="flex items-center justify-between">
+                  <h2
+                    className="text-[14px] font-semibold text-[#0E1420]"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    Assinaturas
+                  </h2>
+                  <Link
+                    to="/assinaturas"
+                    className="text-[12px] font-medium text-[#4A3AEB] transition-colors duration-200 hover:text-[#0E1420]"
+                  >
+                    Ver todas
+                  </Link>
+                </div>
+                <p className="mt-1 text-[12px] text-[#0E1420]/45">
+                  {subscriptions.length > 0
+                    ? `${formatCurrency(monthlySubscriptionsTotal)} por mês, próximos vencimentos:`
+                    : "Pagamentos recorrentes mensais."}
+                </p>
+                <div className="mt-6">
+                  {upcomingSubscriptions.length === 0 ? (
+                    <div className="flex min-h-[120px] flex-col items-center justify-center gap-3 text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E4E7E2] bg-[#F5F6F4] text-[#0E1420]/50">
+                        <Repeat className="h-4 w-4" strokeWidth={1.75} />
+                      </div>
+                      <p className="text-[13px] text-[#0E1420]/45">Nenhuma assinatura cadastrada.</p>
+                      <Link
+                        to="/assinaturas"
+                        className="text-[13px] font-medium text-[#4A3AEB] transition-colors duration-200 hover:text-[#0E1420]"
+                      >
+                        Criar assinatura
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingSubscriptions.map((subscription) => (
+                        <div key={subscription.id} className="flex items-center justify-between gap-3 text-[13px]">
+                          <span className="min-w-0 truncate font-medium text-[#0E1420]">{subscription.name}</span>
+                          <div className="flex flex-shrink-0 items-center gap-3">
+                            <span className="text-[#0E1420]/45">
+                              {dateFormatter.format(new Date(`${subscription.nextDueDate}T00:00:00Z`))}
+                            </span>
+                            <span className="font-medium text-[#9A5B2E]">
+                              {formatCurrency(subscription.amount)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
