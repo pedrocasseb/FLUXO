@@ -198,6 +198,8 @@ Requer autenticação JWT.
 
 **Resolução de categoria padrão ("Other"):** `categoryId` é opcional tanto em criar quanto em atualizar. Quando omitido, o backend usa/cria uma categoria `"Other"` — mas existe **uma "Other" por tipo** (`INCOME`, `EXPENSE`, `INVESTMENT`), não uma única compartilhada. Nesse caso, envie também o campo `type` para indicar qual "Other" usar; se `type` também for omitido, o padrão é `EXPENSE`. Se `categoryId` for enviado, `type` é ignorado (o tipo já vem da categoria escolhida).
 
+**`paymentMethod`:** todo transação tem um método de pagamento (`CREDIT`, `DEBIT`, `PIX` ou `CASH`), obrigatório em `POST /api/transactions`. **Só `CREDIT` pode ser parcelado** — parcelamento é feito por um endpoint dedicado (ver [4.6](#46-criar-compra-parcelada)), não por este.
+
 ### 4.1. Criar Transação
 - **Rota:** `POST /api/transactions`
 - **Corpo da Requisição (JSON):**
@@ -207,10 +209,11 @@ Requer autenticação JWT.
     "amount": 250.50,
     "transactionDate": "2026-06-15",
     "categoryId": "uuid-da-categoria", // Opcional
-    "type": "EXPENSE" // Opcional; só usado quando categoryId é omitido
+    "type": "EXPENSE", // Opcional; só usado quando categoryId é omitido
+    "paymentMethod": "DEBIT" // CREDIT, DEBIT, PIX ou CASH
   }
   ```
-- **Validação:** `description` obrigatório; `amount` obrigatório e maior que zero; `transactionDate` obrigatório. `categoryId`, quando enviado, precisa existir e pertencer ao usuário autenticado (senão `404`).
+- **Validação:** `description` obrigatório; `amount` obrigatório e maior que zero; `transactionDate` obrigatório; `paymentMethod` obrigatório. `categoryId`, quando enviado, precisa existir e pertencer ao usuário autenticado (senão `404`).
 - **Resposta (201 Created):**
   ```json
   {
@@ -219,7 +222,11 @@ Requer autenticação JWT.
     "amount": 250.50,
     "transactionDate": "2026-06-15",
     "categoryId": "uuid-da-categoria",
-    "categoryName": "Alimentação"
+    "categoryName": "Alimentação",
+    "paymentMethod": "DEBIT",
+    "installmentGroupId": null,
+    "installmentNumber": null,
+    "installmentTotal": null
   }
   ```
 
@@ -234,28 +241,23 @@ Requer autenticação JWT.
       "amount": 250.50,
       "transactionDate": "2026-06-15",
       "categoryId": "uuid-da-categoria",
-      "categoryName": "Alimentação"
+      "categoryName": "Alimentação",
+      "paymentMethod": "DEBIT",
+      "installmentGroupId": null,
+      "installmentNumber": null,
+      "installmentTotal": null
     }
   ]
   ```
+- *Obs: retorna todas as transações do usuário, inclusive parcelas com `transactionDate` futuro que ainda não venceram (ver [seção 5](#5-dashboard-financeiro-apidashboard) sobre o que conta no dashboard).*
 
 ### 4.3. Buscar Transação por ID
 - **Rota:** `GET /api/transactions/{id}`
-- **Resposta (200 OK):**
-  ```json
-  {
-    "id": "uuid-da-transacao",
-    "description": "Compra de Mercado",
-    "amount": 250.50,
-    "transactionDate": "2026-06-15",
-    "categoryId": "uuid-da-categoria",
-    "categoryName": "Alimentação"
-  }
-  ```
+- **Resposta (200 OK):** mesmo formato do item 4.2.
 
 ### 4.4. Atualizar Transação
 - **Rota:** `PUT /api/transactions/{id}`
-- **Semântica de atualização parcial:** `description`, `amount` e `transactionDate` só são alterados se enviados (omitir mantém o valor atual). **`categoryId`/`type` são a exceção:** são sempre resolvidos a cada chamada — omitir `categoryId` reatribui a transação para a "Other" do `type` informado (ou `EXPENSE` por padrão), mesmo que a transação já tivesse uma categoria diferente. Envie `categoryId` explicitamente para preservar a categoria atual.
+- **Semântica de atualização parcial:** `description`, `amount`, `transactionDate` e `paymentMethod` só são alterados se enviados (omitir mantém o valor atual). **`categoryId`/`type` são a exceção:** são sempre resolvidos a cada chamada — omitir `categoryId` reatribui a transação para a "Other" do `type` informado (ou `EXPENSE` por padrão), mesmo que a transação já tivesse uma categoria diferente. Envie `categoryId` explicitamente para preservar a categoria atual.
 - **Corpo da Requisição (JSON):**
   ```json
   {
@@ -263,24 +265,36 @@ Requer autenticação JWT.
     "amount": 280.00,
     "transactionDate": "2026-06-15",
     "categoryId": "uuid-da-categoria", // Opcional — omitir usa/cria a "Other" do `type`
-    "type": "EXPENSE" // Opcional; só usado quando categoryId é omitido
+    "type": "EXPENSE", // Opcional; só usado quando categoryId é omitido
+    "paymentMethod": "DEBIT" // Opcional
   }
   ```
-- **Resposta (200 OK):**
-  ```json
-  {
-    "id": "uuid-da-transacao",
-    "description": "Compra de Mercado Semanal",
-    "amount": 280.00,
-    "transactionDate": "2026-06-15",
-    "categoryId": "uuid-da-categoria",
-    "categoryName": "Alimentação"
-  }
-  ```
+- **Resposta (200 OK):** mesmo formato do item 4.2, com os campos atualizados.
+- *Obs: editar uma parcela individual (`installmentNumber`/`installmentTotal` preenchidos) não afeta as outras parcelas do mesmo grupo.*
 
 ### 4.5. Excluir Transação
 - **Rota:** `DELETE /api/transactions/{id}`
 - **Resposta (204 No Content)**
+- *Obs: se a transação faz parte de uma compra parcelada (`installmentGroupId` não nulo), excluir **qualquer** parcela remove **todas** as parcelas do grupo (passadas e futuras).*
+
+### 4.6. Criar Compra Parcelada
+- **Rota:** `POST /api/transactions/installments`
+- Cria várias transações de uma vez — uma por parcela, uma por mês a partir de `firstInstallmentDate` — todas com `paymentMethod: "CREDIT"` (implícito; não é possível parcelar outro método) e ligadas pelo mesmo `installmentGroupId`.
+- **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "description": "PS5",
+    "totalAmount": 4000.00,
+    "installments": 10,
+    "categoryId": "uuid-da-categoria", // Opcional
+    "type": "EXPENSE", // Opcional; só usado quando categoryId é omitido
+    "firstInstallmentDate": "2026-07-05"
+  }
+  ```
+- **Validação:** `description` obrigatório; `totalAmount` obrigatório e maior que zero; `installments` obrigatório, entre `2` e `60`; `firstInstallmentDate` obrigatório. Para uma compra à vista no crédito (1x), use `POST /api/transactions` normal com `paymentMethod: "CREDIT"`.
+- **Divisão do valor:** `totalAmount / installments`, arredondado para 2 casas decimais; a diferença de arredondamento é absorvida na última parcela (ex.: `1000 / 3` → `333.33`, `333.33`, `333.34`).
+- **Descrição:** cada parcela recebe o sufixo `" (i/N)"` (ex.: `"PS5 (3/10)"`).
+- **Resposta (201 Created):** array com as `N` transações criadas, no mesmo formato do item 4.2, cada uma com `installmentGroupId` (igual entre todas), `installmentNumber` (1..N) e `installmentTotal` (N) preenchidos.
 
 ---
 
@@ -364,6 +378,7 @@ Requer autenticação JWT. Retorna o consolidador de dados para montagem do Dash
   }
   ```
 - **`summary`** é acumulado desde o início (todas as transações). **`comparisons`** é o mês atual vs. o mês anterior. **`expensesByCategory`** só considera categorias do tipo `EXPENSE`, acumulado histórico. **`insights`** são frases já prontas em português, geradas pelo backend — o client só precisa listá-las.
+- **Transações com `transactionDate` futuro (ex.: parcelas de uma [compra parcelada](#6-transações-parceladas-apitransactionsinstallments) que ainda não venceram) são ignoradas em todo o dashboard** — `summary`, `comparisons`, `expensesByCategory`, `monthlyEvolution` e `insights` só consideram transações com data `<=` hoje. A parcela só passa a contar no saldo/gastos a partir do mês em que ela efetivamente vence. Ela continua aparecendo normalmente em `GET /api/transactions` (para o usuário poder ver/editar/excluir parcelas futuras).
 
 ---
 

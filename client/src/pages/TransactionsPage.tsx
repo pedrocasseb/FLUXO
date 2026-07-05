@@ -15,12 +15,14 @@ import {
   listCategories,
   listTransactions,
   createTransaction,
+  createInstallmentPurchase,
   updateTransaction,
   deleteTransaction,
   ApiError,
   type AuthUser,
   type Category,
   type CategoryType,
+  type PaymentMethod,
   type Transaction,
 } from "../lib/api";
 import { formatCurrency } from "../lib/format";
@@ -67,6 +69,15 @@ const TYPE_LABELS: Record<CategoryType, string> = {
 
 const TYPE_ORDER: CategoryType[] = ["EXPENSE", "INCOME", "INVESTMENT"];
 
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CREDIT: "Crédito",
+  DEBIT: "Débito",
+  PIX: "Pix",
+  CASH: "Dinheiro",
+};
+
+const PAYMENT_METHOD_ORDER: PaymentMethod[] = ["CREDIT", "DEBIT", "PIX", "CASH"];
+
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -77,6 +88,7 @@ type FormState = {
   transactionDate: string;
   type: CategoryType;
   categoryId: string;
+  paymentMethod: PaymentMethod;
 };
 
 const EMPTY_FORM: FormState = {
@@ -85,6 +97,7 @@ const EMPTY_FORM: FormState = {
   transactionDate: todayISO(),
   type: "EXPENSE",
   categoryId: "",
+  paymentMethod: "DEBIT",
 };
 
 export default function TransactionsPage() {
@@ -100,6 +113,8 @@ export default function TransactionsPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isInstallment, setIsInstallment] = useState(false);
+  const [installments, setInstallments] = useState("2");
 
   const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -178,6 +193,8 @@ export default function TransactionsPage() {
   function openCreateModal() {
     setEditing(null);
     setForm(EMPTY_FORM);
+    setIsInstallment(false);
+    setInstallments("2");
     setFormError(null);
     setModalOpen(true);
   }
@@ -190,7 +207,10 @@ export default function TransactionsPage() {
       transactionDate: transaction.transactionDate,
       type: categoryTypeById.get(transaction.categoryId) ?? "EXPENSE",
       categoryId: transaction.categoryId,
+      paymentMethod: transaction.paymentMethod,
     });
+    setIsInstallment(false);
+    setInstallments("2");
     setFormError(null);
     setModalOpen(true);
   }
@@ -200,12 +220,27 @@ export default function TransactionsPage() {
     setFormError(null);
     setSaving(true);
     try {
+      if (!editing && isInstallment) {
+        const created = await createInstallmentPurchase({
+          description: form.description,
+          totalAmount: Number(form.amount),
+          installments: Number(installments),
+          categoryId: form.categoryId || undefined,
+          type: form.type,
+          firstInstallmentDate: form.transactionDate,
+        });
+        setTransactions((prev) => [...prev, ...created]);
+        setModalOpen(false);
+        return;
+      }
+
       const input = {
         description: form.description,
         amount: Number(form.amount),
         transactionDate: form.transactionDate,
         categoryId: form.categoryId || undefined,
         type: form.type,
+        paymentMethod: form.paymentMethod,
       };
       if (editing) {
         const updated = await updateTransaction(editing.id, input);
@@ -360,6 +395,7 @@ export default function TransactionsPage() {
             <div className="overflow-hidden rounded-2xl border border-[#E4E7E2] bg-white">
               {visibleTransactions.map((transaction, index) => {
                 const categoryType = categoryTypeById.get(transaction.categoryId) ?? "EXPENSE";
+                const isFuture = transaction.transactionDate > todayISO();
                 return (
                   <div
                     key={transaction.id}
@@ -372,10 +408,27 @@ export default function TransactionsPage() {
                         {dateFormatter.format(new Date(`${transaction.transactionDate}T00:00:00Z`))}
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-[14px] font-medium text-[#0E1420]">
-                          {transaction.description}
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-[14px] font-medium text-[#0E1420]">
+                            {transaction.description}
+                          </p>
+                          {transaction.installmentTotal && (
+                            <span className="flex-shrink-0 rounded-full bg-[#EDEAFC] px-2 py-0.5 text-[11px] font-medium text-[#4A3AEB]">
+                              {transaction.installmentNumber}/{transaction.installmentTotal}
+                            </span>
+                          )}
+                          {isFuture && (
+                            <span
+                              className="flex-shrink-0 rounded-full bg-[#F5F6F4] px-2 py-0.5 text-[11px] font-medium text-[#0E1420]/45"
+                              title="Ainda não entra no saldo — só conta a partir da data dela"
+                            >
+                              Agendada
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[12px] text-[#0E1420]/45">
+                          {transaction.categoryName} · {PAYMENT_METHOD_LABELS[transaction.paymentMethod]}
                         </p>
-                        <p className="text-[12px] text-[#0E1420]/45">{transaction.categoryName}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -431,7 +484,7 @@ export default function TransactionsPage() {
           />
           <FormField
             id="transaction-amount"
-            label="Valor (R$)"
+            label={isInstallment ? "Valor total (R$)" : "Valor (R$)"}
             type="number"
             step="0.01"
             min="0.01"
@@ -442,10 +495,59 @@ export default function TransactionsPage() {
           />
           <DateField
             id="transaction-date"
-            label="Data"
+            label={isInstallment ? "Data da 1ª parcela" : "Data"}
             value={form.transactionDate}
             onChange={(value) => setForm((prev) => ({ ...prev, transactionDate: value }))}
           />
+          <SelectField
+            id="transaction-payment-method"
+            label="Método de pagamento"
+            value={form.paymentMethod}
+            onChange={(event) => {
+              const paymentMethod = event.target.value as PaymentMethod;
+              setForm((prev) => ({ ...prev, paymentMethod }));
+              if (paymentMethod !== "CREDIT") setIsInstallment(false);
+            }}
+          >
+            {PAYMENT_METHOD_ORDER.map((method) => (
+              <option key={method} value={method}>
+                {PAYMENT_METHOD_LABELS[method]}
+              </option>
+            ))}
+          </SelectField>
+          {!editing && form.paymentMethod === "CREDIT" && (
+            <div className="rounded-xl border border-[#E4E7E2] bg-[#F5F6F4] p-4">
+              <label className="flex items-center gap-2 text-[13px] font-medium text-[#0E1420]">
+                <input
+                  type="checkbox"
+                  checked={isInstallment}
+                  onChange={(event) => setIsInstallment(event.target.checked)}
+                  className="h-4 w-4 rounded border-[#E4E7E2] accent-[#4A3AEB]"
+                />
+                Parcelar essa compra
+              </label>
+              {isInstallment && (
+                <div className="mt-3">
+                  <FormField
+                    id="transaction-installments"
+                    label="Número de parcelas"
+                    type="number"
+                    min="2"
+                    max="60"
+                    step="1"
+                    required
+                    value={installments}
+                    onChange={(event) => setInstallments(event.target.value)}
+                  />
+                  {Number(form.amount) > 0 && Number(installments) >= 2 && (
+                    <p className="mt-2 text-[12px] text-[#0E1420]/50">
+                      {installments}x de {formatCurrency(Number(form.amount) / Number(installments))}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <SelectField
             id="transaction-category"
             label="Categoria"
@@ -490,7 +592,13 @@ export default function TransactionsPage() {
               disabled={saving}
               className="rounded-full bg-[#0E1420] px-5 py-2.5 text-[14px] font-medium text-white transition-all duration-300 hover:bg-[#4A3AEB] disabled:pointer-events-none disabled:opacity-60"
             >
-              {saving ? "Salvando…" : editing ? "Salvar alterações" : "Criar transação"}
+              {saving
+                ? "Salvando…"
+                : editing
+                  ? "Salvar alterações"
+                  : isInstallment
+                    ? "Criar compra parcelada"
+                    : "Criar transação"}
             </button>
           </div>
         </form>
@@ -501,7 +609,11 @@ export default function TransactionsPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Excluir transação"
-        description={`Tem certeza que deseja excluir "${deleteTarget?.description}"? Essa ação não pode ser desfeita.`}
+        description={
+          deleteTarget?.installmentTotal
+            ? `"${deleteTarget.description}" faz parte de uma compra parcelada em ${deleteTarget.installmentTotal}x. Excluir vai remover todas as parcelas, passadas e futuras. Essa ação não pode ser desfeita.`
+            : `Tem certeza que deseja excluir "${deleteTarget?.description}"? Essa ação não pode ser desfeita.`
+        }
         error={deleteError}
         loading={deleting}
       />

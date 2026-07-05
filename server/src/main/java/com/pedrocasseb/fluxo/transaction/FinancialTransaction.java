@@ -33,6 +33,15 @@ public class FinancialTransaction {
 
   private LocalDate transactionDate;
 
+  @Enumerated(EnumType.STRING)
+  private PaymentMethod paymentMethod;
+
+  private UUID installmentGroupId;
+
+  private Integer installmentNumber;
+
+  private Integer installmentTotal;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
   private User user;

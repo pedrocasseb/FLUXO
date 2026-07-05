@@ -23,9 +23,14 @@ public class DashboardService {
 
   @Transactional(readOnly = true)
   public DashboardResponse getDashboard(User user) {
-    List<FinancialTransaction> allTransactions = transactionRepository.findByUser(user);
-
     LocalDate now = LocalDate.now();
+
+    // Parcelas de compras parceladas com vencimento futuro ainda não foram pagas —
+    // só entram no resumo/saldo/gráficos quando a data delas chegar.
+    List<FinancialTransaction> allTransactions = transactionRepository.findByUser(user).stream()
+        .filter(tx -> !tx.getTransactionDate().isAfter(now))
+        .toList();
+
     int currentMonthValue = now.getMonthValue();
     int currentYearValue = now.getYear();
 

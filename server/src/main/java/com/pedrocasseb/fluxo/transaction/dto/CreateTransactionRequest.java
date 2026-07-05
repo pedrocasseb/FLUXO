@@ -1,6 +1,7 @@
 package com.pedrocasseb.fluxo.transaction.dto;
 
 import com.pedrocasseb.fluxo.category.CategoryType;
+import com.pedrocasseb.fluxo.transaction.PaymentMethod;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -21,5 +22,8 @@ public record CreateTransactionRequest(
     CategoryType type,
 
     @NotNull(message = "Transaction date is required")
-    LocalDate transactionDate
+    LocalDate transactionDate,
+
+    @NotNull(message = "Payment method is required")
+    PaymentMethod paymentMethod
 ) {}

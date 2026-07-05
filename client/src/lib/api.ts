@@ -100,6 +100,8 @@ export function deleteCategory(id: string) {
   return authedSend<void>("DELETE", `/api/categories/${id}`);
 }
 
+export type PaymentMethod = "CREDIT" | "DEBIT" | "PIX" | "CASH";
+
 export type Transaction = {
   id: string;
   description: string;
@@ -107,6 +109,10 @@ export type Transaction = {
   transactionDate: string;
   categoryId: string;
   categoryName: string;
+  paymentMethod: PaymentMethod;
+  installmentGroupId: string | null;
+  installmentNumber: number | null;
+  installmentTotal: number | null;
 };
 
 export type TransactionInput = {
@@ -115,6 +121,16 @@ export type TransactionInput = {
   transactionDate: string;
   categoryId?: string;
   type: CategoryType;
+  paymentMethod: PaymentMethod;
+};
+
+export type InstallmentPurchaseInput = {
+  description: string;
+  totalAmount: number;
+  installments: number;
+  categoryId?: string;
+  type: CategoryType;
+  firstInstallmentDate: string;
 };
 
 export function listTransactions() {
@@ -123,6 +139,10 @@ export function listTransactions() {
 
 export function createTransaction(input: TransactionInput) {
   return authedSend<Transaction>("POST", "/api/transactions", input);
+}
+
+export function createInstallmentPurchase(input: InstallmentPurchaseInput) {
+  return authedSend<Transaction[]>("POST", "/api/transactions/installments", input);
 }
 
 export function updateTransaction(id: string, input: TransactionInput) {

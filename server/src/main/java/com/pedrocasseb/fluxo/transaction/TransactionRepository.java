@@ -11,4 +11,5 @@ import org.springframework.stereotype.Repository;
 public interface TransactionRepository extends JpaRepository<FinancialTransaction, UUID> {
   List<FinancialTransaction> findByUser(User user);
   Optional<FinancialTransaction> findByIdAndUser(UUID id, User user);
+  List<FinancialTransaction> findByInstallmentGroupIdAndUser(UUID installmentGroupId, User user);
 }

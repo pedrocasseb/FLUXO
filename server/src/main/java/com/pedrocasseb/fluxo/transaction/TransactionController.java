@@ -1,5 +1,6 @@
 package com.pedrocasseb.fluxo.transaction;
 
+import com.pedrocasseb.fluxo.transaction.dto.CreateInstallmentPurchaseRequest;
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
 import com.pedrocasseb.fluxo.transaction.dto.UpdateTransactionRequest;
@@ -34,6 +35,15 @@ public class TransactionController {
         return ResponseEntity.ok(
                 transactionService.findAll(user)
         );
+    }
+
+    @PostMapping("/installments")
+    public ResponseEntity<List<TransactionResponse>> createInstallmentPurchase(
+            @Valid @RequestBody CreateInstallmentPurchaseRequest request,
+            @AuthenticationPrincipal User user
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(transactionService.createInstallmentPurchase(request, user));
     }
 
     @DeleteMapping("/{id}")

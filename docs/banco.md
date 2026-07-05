@@ -120,11 +120,19 @@ Mapeada a partir da entidade [FinancialTransaction.java](file:///Users/casseb/De
 | `id` | `UUID` | `UUID` | PK | Não Nulo | Identificador único gerado automaticamente (`GenerationType.UUID`). |
 | `description` | `VARCHAR(255)` | `String` | - | Nulo | Detalhamento ou título da transação. |
 | `amount` | `NUMERIC(38,2)` | `BigDecimal` | - | Nulo | Valor monetário da transação financeira. |
-| `transaction_date` | `DATE` | `LocalDate` | - | Nulo | Data de ocorrência da transação financeira. |
+| `transaction_date` | `DATE` | `LocalDate` | - | Nulo | Data de ocorrência (ou vencimento, para parcelas futuras) da transação financeira. |
+| `payment_method` | `VARCHAR(255)` | `PaymentMethod` | - | Nulo | Método de pagamento, mapeado como String do enum [PaymentMethod.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/transaction/PaymentMethod.java) (`CREDIT`, `DEBIT`, `PIX` ou `CASH`). |
+| `installment_group_id` | `UUID` | `UUID` | - | Nulo | Identificador compartilhado entre todas as parcelas de uma mesma compra parcelada. `null` para transações avulsas. |
+| `installment_number` | `INTEGER` | `Integer` | - | Nulo | Número da parcela (1..N). `null` para transações avulsas. |
+| `installment_total` | `INTEGER` | `Integer` | - | Nulo | Total de parcelas da compra (N). `null` para transações avulsas. |
 | `user_id` | `UUID` | `User` | FK | Nulo | Referência ao usuário que realizou a transação (Chave estrangeira apontando para `users.id`). |
 | `category_id` | `UUID` | `Category` | FK | Nulo | Referência à categoria da transação (Chave estrangeira apontando para `categories.id`). |
 | `created_at` | `TIMESTAMP` | `LocalDateTime` | - | Não Nulo | Data e hora de criação do registro (Gerido por `@CreationTimestamp`). |
 | `updated_at` | `TIMESTAMP` | `LocalDateTime` | - | Não Nulo | Data e hora da última modificação (Gerido por `@UpdateTimestamp`). |
+
+**Compras parceladas:** `POST /api/transactions/installments` cria N linhas de uma vez (uma por parcela, uma por mês), todas com `payment_method = CREDIT` e o mesmo `installment_group_id`. Excluir qualquer parcela do grupo exclui todas. **Parcelas com `transaction_date` futuro não entram no saldo/resumo do dashboard até a data chegar** (ver [docs/api.md](file:///Users/casseb/Develop/dev/projects/FLUXO/docs/api.md), seção 5).
+
+**Limitação conhecida (bancos existentes):** como `ddl-auto: update` só adiciona colunas novas sem preenchê-las, transações criadas antes desta feature ficam com `payment_method` (e os campos de parcela) `null`. O client deve tratar esse caso ao exibir transações antigas.
 
 ---
 
