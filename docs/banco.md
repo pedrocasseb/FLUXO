@@ -56,10 +56,28 @@ erDiagram
         timestamp created_at
         timestamp updated_at
     }
+    goals {
+        uuid id PK
+        varchar name
+        decimal target_amount
+        uuid user_id FK
+        timestamp created_at
+    }
+    goal_contributions {
+        uuid id PK
+        decimal amount
+        date contribution_date
+        uuid goal_id FK
+        uuid transaction_id FK
+        timestamp created_at
+    }
 
     users ||--o{ categories : "possui"
     users ||--o{ transactions : "realiza"
+    users ||--o{ goals : "define"
     categories ||--o{ transactions : "classifica"
+    goals ||--o{ goal_contributions : "recebe"
+    goal_contributions ||--|| transactions : "gera"
 ```
 
 ---
@@ -110,6 +128,35 @@ Mapeada a partir da entidade [FinancialTransaction.java](file:///Users/casseb/De
 
 ---
 
+### 3.4. Tabela `goals`
+Mapeada a partir da entidade [Goal.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/Goal.java), representa um objetivo financeiro do usuário (ex.: "PS5") com um valor alvo a ser atingido através de aportes.
+
+| Coluna | Tipo no Banco | Tipo Java | Chave | Nulidade | Detalhes / Restrições |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| `id` | `UUID` | `UUID` | PK | Não Nulo | Identificador único gerado automaticamente (`GenerationType.UUID`). |
+| `name` | `VARCHAR(255)` | `String` | - | Nulo | Nome descritivo da meta. |
+| `target_amount` | `NUMERIC(38,2)` | `BigDecimal` | - | Nulo | Valor alvo a ser atingido. |
+| `user_id` | `UUID` | `User` | FK | Nulo | Referência ao usuário proprietário desta meta. |
+| `created_at` | `TIMESTAMP` | `LocalDateTime` | - | Não Nulo | Data e hora de criação do registro (Gerido por `@CreationTimestamp`). |
+
+`currentAmount` e `completed` não são colunas persistidas — são calculados em tempo de leitura a partir da soma dos aportes (`goal_contributions`) da meta.
+
+---
+
+### 3.5. Tabela `goal_contributions`
+Mapeada a partir da entidade [GoalContribution.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/GoalContribution.java), registra cada aporte de dinheiro feito em direção a uma meta.
+
+| Coluna | Tipo no Banco | Tipo Java | Chave | Nulidade | Detalhes / Restrições |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| `id` | `UUID` | `UUID` | PK | Não Nulo | Identificador único gerado automaticamente (`GenerationType.UUID`). |
+| `amount` | `NUMERIC(38,2)` | `BigDecimal` | - | Nulo | Valor do aporte. |
+| `contribution_date` | `DATE` | `LocalDate` | - | Nulo | Data em que o aporte foi feito. |
+| `goal_id` | `UUID` | `Goal` | FK | Nulo | Referência à meta que recebeu o aporte. |
+| `transaction_id` | `UUID` | `FinancialTransaction` | FK | Nulo | Referência à transação (tipo `INVESTMENT`, categoria `"Metas"`) gerada automaticamente por este aporte. |
+| `created_at` | `TIMESTAMP` | `LocalDateTime` | - | Não Nulo | Data e hora de criação do registro (Gerido por `@CreationTimestamp`). |
+
+---
+
 ## 4. Detalhes de Relacionamentos e Integridade
 
 1. **Relação Usuário - Categorias (`users` para `categories`):**
@@ -126,3 +173,15 @@ Mapeada a partir da entidade [FinancialTransaction.java](file:///Users/casseb/De
    - Relação **1 para N** (`OneToMany` em [Category.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/category/Category.java#L36) e `ManyToOne` em [FinancialTransaction.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/transaction/FinancialTransaction.java#L40)).
    - Uma transação pode estar associada a uma categoria de classificação. Uma categoria pode possuir múltiplos registros de transação.
    - Carregamento preguiçoso (`FetchType.LAZY`) ativado na chave estrangeira `category_id`.
+
+4. **Relação Usuário - Metas (`users` para `goals`):**
+   - Relação **1 para N** (`ManyToOne` em [Goal.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/Goal.java#L32)).
+   - Um usuário pode ter múltiplas metas financeiras.
+
+5. **Relação Meta - Aportes (`goals` para `goal_contributions`):**
+   - Relação **1 para N** (`OneToMany` com `cascade = ALL, orphanRemoval = true` em [Goal.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/Goal.java#L36) e `ManyToOne` em [GoalContribution.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/GoalContribution.java#L29)).
+   - Excluir uma meta exclui automaticamente todos os seus aportes.
+
+6. **Relação Aporte - Transação (`goal_contributions` para `transactions`):**
+   - Relação **1 para 1** (`OneToOne` com `cascade = ALL, orphanRemoval = true` em [GoalContribution.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/GoalContribution.java#L33)).
+   - Cada aporte gera exatamente uma transação (tipo `INVESTMENT`, categoria `"Metas"`). Excluir o aporte exclui também a transação associada.

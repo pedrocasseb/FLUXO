@@ -170,6 +170,51 @@ export function getDashboard() {
   return authedGet<DashboardData>("/api/dashboard");
 }
 
+export type Goal = {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  completed: boolean;
+  createdAt: string;
+};
+
+export type GoalContribution = {
+  id: string;
+  amount: number;
+  contributionDate: string;
+  transactionId: string;
+  createdAt: string;
+};
+
+export function listGoals() {
+  return authedGet<Goal[]>("/api/goals");
+}
+
+export function createGoal(name: string, targetAmount: number) {
+  return authedSend<Goal>("POST", "/api/goals", { name, targetAmount });
+}
+
+export function updateGoal(id: string, name: string, targetAmount: number) {
+  return authedSend<Goal>("PUT", `/api/goals/${id}`, { name, targetAmount });
+}
+
+export function deleteGoal(id: string) {
+  return authedSend<void>("DELETE", `/api/goals/${id}`);
+}
+
+export function listGoalContributions(goalId: string) {
+  return authedGet<GoalContribution[]>(`/api/goals/${goalId}/contributions`);
+}
+
+export function addGoalContribution(goalId: string, amount: number, contributionDate: string) {
+  return authedSend<Goal>("POST", `/api/goals/${goalId}/contributions`, { amount, contributionDate });
+}
+
+export function deleteGoalContribution(goalId: string, contributionId: string) {
+  return authedSend<void>("DELETE", `/api/goals/${goalId}/contributions/${contributionId}`);
+}
+
 const TOKEN_KEY = "fluxo_token";
 
 export function saveToken(token: string) {

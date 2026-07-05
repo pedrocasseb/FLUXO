@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { label: "Painel", to: "/dashboard" },
   { label: "Categorias", to: "/categorias" },
   { label: "Transações", to: "/transacoes" },
+  { label: "Metas", to: "/metas" },
 ];
 
 export default function AppHeader({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {

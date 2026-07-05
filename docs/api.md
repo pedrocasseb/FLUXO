@@ -367,6 +367,95 @@ Requer autenticação JWT. Retorna o consolidador de dados para montagem do Dash
 
 ---
 
+## 6. Metas (`/api/goals`)
+
+Requer autenticação JWT. Uma meta representa um objetivo financeiro (ex.: "PS5") com um valor alvo; o usuário vai registrando aportes até atingi-lo.
+
+**Aportes geram transações reais:** cada aporte cria automaticamente uma transação do tipo `INVESTMENT` (categoria `"Metas"`, criada/reaproveitada por usuário), afetando saldo e dashboard como qualquer outra transação. Excluir um aporte remove também a transação associada. Excluir a meta remove em cascata todos os seus aportes e as transações geradas por eles.
+
+`currentAmount` e `completed` são calculados a partir da soma dos aportes — não são campos editáveis diretamente.
+
+### 6.1. Criar Meta
+- **Rota:** `POST /api/goals`
+- **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "name": "PS5",
+    "targetAmount": 4000.00
+  }
+  ```
+- **Validação:** `name` obrigatório; `targetAmount` obrigatório e maior que zero.
+- **Resposta (201 Created):**
+  ```json
+  {
+    "id": "uuid-da-meta",
+    "name": "PS5",
+    "targetAmount": 4000.00,
+    "currentAmount": 0.00,
+    "completed": false,
+    "createdAt": "2026-07-05T10:00:00"
+  }
+  ```
+
+### 6.2. Listar Metas do Usuário
+- **Rota:** `GET /api/goals`
+- **Resposta (200 OK):** array de objetos no mesmo formato do item 6.1.
+
+### 6.3. Buscar Meta por ID
+- **Rota:** `GET /api/goals/{id}`
+- **Resposta (200 OK):** mesmo formato do item 6.1.
+
+### 6.4. Atualizar Meta
+- **Rota:** `PUT /api/goals/{id}`
+- **Atualização parcial:** `name` e `targetAmount` só são alterados se enviados.
+- **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "name": "PS5 Pro",
+    "targetAmount": 4500.00
+  }
+  ```
+- **Resposta (200 OK):** mesmo formato do item 6.1.
+
+### 6.5. Excluir Meta
+- **Rota:** `DELETE /api/goals/{id}`
+- **Resposta (204 No Content)**
+- *Obs: remove em cascata todos os aportes e as transações geradas por eles.*
+
+### 6.6. Listar Aportes de uma Meta
+- **Rota:** `GET /api/goals/{id}/contributions`
+- **Resposta (200 OK):**
+  ```json
+  [
+    {
+      "id": "uuid-do-aporte",
+      "amount": 500.00,
+      "contributionDate": "2026-07-05",
+      "transactionId": "uuid-da-transacao",
+      "createdAt": "2026-07-05T10:05:00"
+    }
+  ]
+  ```
+
+### 6.7. Adicionar Aporte
+- **Rota:** `POST /api/goals/{id}/contributions`
+- **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "amount": 500.00,
+    "contributionDate": "2026-07-05"
+  }
+  ```
+- **Validação:** `amount` obrigatório e maior que zero; `contributionDate` obrigatório.
+- **Resposta (201 Created):** a meta atualizada, no mesmo formato do item 6.1 (com `currentAmount` já somado).
+
+### 6.8. Excluir Aporte
+- **Rota:** `DELETE /api/goals/{id}/contributions/{contributionId}`
+- **Resposta (204 No Content)**
+- *Obs: remove também a transação gerada por esse aporte.*
+
+---
+
 ## Formato de Erros
 
 Todo erro (exceto 401/403 padrão do Spring Security) segue o mesmo formato, produzido pelo `GlobalExceptionHandler`:
@@ -389,6 +478,6 @@ Todo erro (exceto 401/403 padrão do Spring Security) segue o mesmo formato, pro
 | `400 Bad Request` | Falha de validação Bean Validation (`@NotBlank`, `@NotNull`, `@Positive`, `@Email`, etc.) — inclui `fields`. Também usado para JSON malformado ou valor de enum inválido (ex.: `"type": "NAOEXISTE"`) — sem `fields`. |
 | `401 Unauthorized` | Credenciais de login inválidas, ou token ausente/expirado/inválido em rota protegida. |
 | `403 Forbidden` | Usuário autenticado tentando acessar recurso sem permissão. |
-| `404 Not Found` | Categoria ou transação não encontrada (ou não pertence ao usuário autenticado — o isolamento por usuário faz um recurso de outro usuário parecer inexistente). |
+| `404 Not Found` | Categoria, transação, meta ou aporte não encontrado (ou não pertence ao usuário autenticado — o isolamento por usuário faz um recurso de outro usuário parecer inexistente). |
 | `409 Conflict` | E-mail já cadastrado no registro; ou tentativa de excluir uma categoria com transações vinculadas (violação de integridade referencial). |
 | `500 Internal Server Error` | Erro inesperado não tratado — não deveria acontecer em uso normal; se acontecer, é bug. |
