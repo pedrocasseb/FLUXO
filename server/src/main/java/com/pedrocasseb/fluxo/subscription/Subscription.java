@@ -1,6 +1,7 @@
-package com.pedrocasseb.fluxo.transaction;
+package com.pedrocasseb.fluxo.subscription;
 
 import com.pedrocasseb.fluxo.category.Category;
+import com.pedrocasseb.fluxo.transaction.PaymentMethod;
 import com.pedrocasseb.fluxo.user.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,43 +16,35 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transactions")
+@Table(name = "subscriptions")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class FinancialTransaction {
+public class Subscription {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  private String description;
+  private String name;
 
   private BigDecimal amount;
 
-  private LocalDate transactionDate;
+  private Integer dueDay;
 
   @Enumerated(EnumType.STRING)
   private PaymentMethod paymentMethod;
 
-  private UUID installmentGroupId;
-
-  private Integer installmentNumber;
-
-  private Integer installmentTotal;
-
-  private UUID subscriptionId;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
-  private User user;
+  private LocalDate nextDueDate;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "category_id")
   private Category category;
 
-  @CreationTimestamp private LocalDateTime createdAt;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id")
+  private User user;
 
-  @UpdateTimestamp private LocalDateTime updatedAt;
+  @CreationTimestamp private LocalDateTime createdAt;
 }

@@ -2,7 +2,9 @@ package com.pedrocasseb.fluxo.analytics;
 
 import com.pedrocasseb.fluxo.analytics.dto.*;
 import com.pedrocasseb.fluxo.category.CategoryType;
+import com.pedrocasseb.fluxo.subscription.SubscriptionService;
 import com.pedrocasseb.fluxo.transaction.FinancialTransaction;
+import com.pedrocasseb.fluxo.transaction.PaymentMethod;
 import com.pedrocasseb.fluxo.transaction.TransactionRepository;
 import com.pedrocasseb.fluxo.user.User;
 import java.math.BigDecimal;
@@ -20,9 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class DashboardService {
 
   private final TransactionRepository transactionRepository;
+  private final SubscriptionService subscriptionService;
 
-  @Transactional(readOnly = true)
+  @Transactional
   public DashboardResponse getDashboard(User user) {
+    subscriptionService.syncDueTransactions(user);
+
     LocalDate now = LocalDate.now();
 
     // Parcelas de compras parceladas com vencimento futuro ainda não foram pagas —
@@ -129,6 +134,28 @@ public class DashboardService {
         .sorted(Comparator.comparing(CategoryExpenseDetail::amount).reversed())
         .toList();
 
+    // 3.1 Gastos por Método de Pagamento (Apenas Despesas de todo o histórico)
+    Map<PaymentMethod, BigDecimal> expensesByPaymentMethodMap = allExpenses.stream()
+        .filter(tx -> tx.getPaymentMethod() != null)
+        .collect(Collectors.groupingBy(
+            FinancialTransaction::getPaymentMethod,
+            Collectors.reducing(BigDecimal.ZERO, FinancialTransaction::getAmount, BigDecimal::add)
+        ));
+
+    List<PaymentMethodExpenseDetail> expensesByPaymentMethod = expensesByPaymentMethodMap.entrySet().stream()
+        .map(entry -> {
+          double percentage = 0.0;
+          if (totalExpensesAllTime.compareTo(BigDecimal.ZERO) > 0) {
+            percentage = entry.getValue()
+                .multiply(BigDecimal.valueOf(100))
+                .divide(totalExpensesAllTime, 2, RoundingMode.HALF_UP)
+                .doubleValue();
+          }
+          return new PaymentMethodExpenseDetail(entry.getKey(), entry.getValue(), percentage);
+        })
+        .sorted(Comparator.comparing(PaymentMethodExpenseDetail::amount).reversed())
+        .toList();
+
     // 4. Evolução Mensal
     Map<String, List<FinancialTransaction>> transactionsByMonth = allTransactions.stream()
         .collect(Collectors.groupingBy(tx -> {
@@ -209,6 +236,7 @@ public class DashboardService {
         comparisons,
         insights,
         expensesByCategory,
+        expensesByPaymentMethod,
         monthlyEvolution,
         projections
     );

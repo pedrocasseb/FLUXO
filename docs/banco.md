@@ -51,10 +51,26 @@ erDiagram
         varchar description
         decimal amount
         date transaction_date
+        varchar payment_method
+        uuid installment_group_id
+        integer installment_number
+        integer installment_total
+        uuid subscription_id
         uuid user_id FK
         uuid category_id FK
         timestamp created_at
         timestamp updated_at
+    }
+    subscriptions {
+        uuid id PK
+        varchar name
+        decimal amount
+        integer due_day
+        varchar payment_method
+        date next_due_date
+        uuid category_id FK
+        uuid user_id FK
+        timestamp created_at
     }
     goals {
         uuid id PK
@@ -75,9 +91,12 @@ erDiagram
     users ||--o{ categories : "possui"
     users ||--o{ transactions : "realiza"
     users ||--o{ goals : "define"
+    users ||--o{ subscriptions : "assina"
     categories ||--o{ transactions : "classifica"
+    categories ||--o{ subscriptions : "classifica"
     goals ||--o{ goal_contributions : "recebe"
     goal_contributions ||--|| transactions : "gera"
+    subscriptions ||--o{ transactions : "gera (por subscription_id, sem FK)"
 ```
 
 ---
@@ -125,6 +144,7 @@ Mapeada a partir da entidade [FinancialTransaction.java](file:///Users/casseb/De
 | `installment_group_id` | `UUID` | `UUID` | - | Nulo | Identificador compartilhado entre todas as parcelas de uma mesma compra parcelada. `null` para transações avulsas. |
 | `installment_number` | `INTEGER` | `Integer` | - | Nulo | Número da parcela (1..N). `null` para transações avulsas. |
 | `installment_total` | `INTEGER` | `Integer` | - | Nulo | Total de parcelas da compra (N). `null` para transações avulsas. |
+| `subscription_id` | `UUID` | `UUID` | - | Nulo | Referência solta (sem FK) à assinatura que gerou esta transação automaticamente. **Não é apagado/atualizado quando a assinatura é excluída** — é só uma marcação histórica de origem. `null` para transações que não vieram de assinatura. |
 | `user_id` | `UUID` | `User` | FK | Nulo | Referência ao usuário que realizou a transação (Chave estrangeira apontando para `users.id`). |
 | `category_id` | `UUID` | `Category` | FK | Nulo | Referência à categoria da transação (Chave estrangeira apontando para `categories.id`). |
 | `created_at` | `TIMESTAMP` | `LocalDateTime` | - | Não Nulo | Data e hora de criação do registro (Gerido por `@CreationTimestamp`). |
@@ -132,11 +152,32 @@ Mapeada a partir da entidade [FinancialTransaction.java](file:///Users/casseb/De
 
 **Compras parceladas:** `POST /api/transactions/installments` cria N linhas de uma vez (uma por parcela, uma por mês), todas com `payment_method = CREDIT` e o mesmo `installment_group_id`. Excluir qualquer parcela do grupo exclui todas. **Parcelas com `transaction_date` futuro não entram no saldo/resumo do dashboard até a data chegar** (ver [docs/api.md](file:///Users/casseb/Develop/dev/projects/FLUXO/docs/api.md), seção 5).
 
-**Limitação conhecida (bancos existentes):** como `ddl-auto: update` só adiciona colunas novas sem preenchê-las, transações criadas antes desta feature ficam com `payment_method` (e os campos de parcela) `null`. O client deve tratar esse caso ao exibir transações antigas.
+**Assinaturas:** cada transação gerada por uma assinatura (ver `subscriptions` abaixo) carrega o `subscription_id` de origem, mas é uma linha independente — editar/excluir uma transação de assinatura não afeta a assinatura nem as outras transações já geradas por ela.
+
+**Limitação conhecida (bancos existentes):** como `ddl-auto: update` só adiciona colunas novas sem preenchê-las, transações criadas antes desta feature ficam com `payment_method` (e os campos de parcela/assinatura) `null`. O client deve tratar esse caso ao exibir transações antigas.
 
 ---
 
-### 3.4. Tabela `goals`
+### 3.4. Tabela `subscriptions`
+Mapeada a partir da entidade [Subscription.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/subscription/Subscription.java), representa um pagamento recorrente mensal (ex.: "Claude", "Netflix").
+
+| Coluna | Tipo no Banco | Tipo Java | Chave | Nulidade | Detalhes / Restrições |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| `id` | `UUID` | `UUID` | PK | Não Nulo | Identificador único gerado automaticamente (`GenerationType.UUID`). |
+| `name` | `VARCHAR(255)` | `String` | - | Nulo | Nome descritivo da assinatura. |
+| `amount` | `NUMERIC(38,2)` | `BigDecimal` | - | Nulo | Valor cobrado a cada mês. |
+| `due_day` | `INTEGER` | `Integer` | - | Nulo | Dia do mês em que a assinatura vence (1–31; clampado para o último dia do mês em meses mais curtos). |
+| `payment_method` | `VARCHAR(255)` | `PaymentMethod` | - | Nulo | Método de pagamento usado nas transações geradas. |
+| `next_due_date` | `DATE` | `LocalDate` | - | Nulo | Próxima data ainda não gerada. Avança automaticamente toda vez que uma transação é gerada para essa data. |
+| `category_id` | `UUID` | `Category` | FK | Nulo | Referência à categoria usada nas transações geradas. |
+| `user_id` | `UUID` | `User` | FK | Nulo | Referência ao usuário dono da assinatura. |
+| `created_at` | `TIMESTAMP` | `LocalDateTime` | - | Não Nulo | Data e hora de criação do registro (Gerido por `@CreationTimestamp`). |
+
+**Geração lazy:** não há coluna de "última geração" separada — `next_due_date` já cumpre esse papel (é avançada a cada transação gerada). Não existe job/scheduler; a geração acontece dentro da mesma transação de banco que atende `GET /api/transactions`, `GET /api/dashboard` ou `GET /api/subscriptions` (ver [docs/api.md](file:///Users/casseb/Develop/dev/projects/FLUXO/docs/api.md), seção 7).
+
+---
+
+### 3.5. Tabela `goals`
 Mapeada a partir da entidade [Goal.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/Goal.java), representa um objetivo financeiro do usuário (ex.: "PS5") com um valor alvo a ser atingido através de aportes.
 
 | Coluna | Tipo no Banco | Tipo Java | Chave | Nulidade | Detalhes / Restrições |
@@ -151,7 +192,7 @@ Mapeada a partir da entidade [Goal.java](file:///Users/casseb/Develop/dev/projec
 
 ---
 
-### 3.5. Tabela `goal_contributions`
+### 3.6. Tabela `goal_contributions`
 Mapeada a partir da entidade [GoalContribution.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/GoalContribution.java), registra cada aporte de dinheiro feito em direção a uma meta.
 
 | Coluna | Tipo no Banco | Tipo Java | Chave | Nulidade | Detalhes / Restrições |
@@ -193,3 +234,10 @@ Mapeada a partir da entidade [GoalContribution.java](file:///Users/casseb/Develo
 6. **Relação Aporte - Transação (`goal_contributions` para `transactions`):**
    - Relação **1 para 1** (`OneToOne` com `cascade = ALL, orphanRemoval = true` em [GoalContribution.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/goal/GoalContribution.java#L33)).
    - Cada aporte gera exatamente uma transação (tipo `INVESTMENT`, categoria `"Metas"`). Excluir o aporte exclui também a transação associada.
+
+7. **Relação Usuário/Categoria - Assinaturas (`users`/`categories` para `subscriptions`):**
+   - Relações **1 para N** (`ManyToOne` em [Subscription.java](file:///Users/casseb/Develop/dev/projects/FLUXO/server/src/main/java/com/pedrocasseb/fluxo/subscription/Subscription.java#L38-L42)), iguais em espírito às de `transactions`.
+
+8. **Relação Assinatura - Transações (`subscriptions` para `transactions`):**
+   - **Não é uma relação JPA (sem FK).** `transactions.subscription_id` é só uma chave de agrupamento solta, análoga a `installment_group_id` — existe para o client conseguir marcar/agrupar visualmente, mas não impõe integridade referencial nem cascade.
+   - Por isso excluir uma assinatura (`DELETE /api/subscriptions/{id}`) **não** apaga nem desvincula as transações que ela já gerou — elas ficam com um `subscription_id` "órfão", intencionalmente (é o mecanismo por trás de "cancelar mantém histórico").

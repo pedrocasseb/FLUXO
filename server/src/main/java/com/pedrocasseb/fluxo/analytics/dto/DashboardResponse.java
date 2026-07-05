@@ -7,6 +7,7 @@ public record DashboardResponse(
     DashboardComparisons comparisons,
     List<String> insights,
     List<CategoryExpenseDetail> expensesByCategory,
+    List<PaymentMethodExpenseDetail> expensesByPaymentMethod,
     List<MonthlyEvolutionDetail> monthlyEvolution,
     DashboardProjections projections
 ) {}

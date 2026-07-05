@@ -15,4 +15,5 @@ public record TransactionResponse(
     PaymentMethod paymentMethod,
     UUID installmentGroupId,
     Integer installmentNumber,
-    Integer installmentTotal) {}
+    Integer installmentTotal,
+    UUID subscriptionId) {}

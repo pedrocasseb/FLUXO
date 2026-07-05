@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage';
 import CategoriesPage from './pages/CategoriesPage';
 import TransactionsPage from './pages/TransactionsPage';
 import GoalsPage from './pages/GoalsPage';
+import SubscriptionsPage from './pages/SubscriptionsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RedirectIfAuthenticated from './components/auth/RedirectIfAuthenticated';
 import { useReducedMotion } from './hooks/useReducedMotion';
@@ -65,6 +66,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <GoalsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/assinaturas"
+          element={
+            <ProtectedRoute>
+              <SubscriptionsPage />
             </ProtectedRoute>
           }
         />

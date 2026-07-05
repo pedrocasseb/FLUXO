@@ -113,6 +113,7 @@ export type Transaction = {
   installmentGroupId: string | null;
   installmentNumber: number | null;
   installmentTotal: number | null;
+  subscriptionId: string | null;
 };
 
 export type TransactionInput = {
@@ -153,6 +154,43 @@ export function deleteTransaction(id: string) {
   return authedSend<void>("DELETE", `/api/transactions/${id}`);
 }
 
+export type Subscription = {
+  id: string;
+  name: string;
+  amount: number;
+  dueDay: number;
+  paymentMethod: PaymentMethod;
+  categoryId: string;
+  categoryName: string;
+  nextDueDate: string;
+  createdAt: string;
+};
+
+export type SubscriptionInput = {
+  name: string;
+  amount: number;
+  dueDay: number;
+  paymentMethod: PaymentMethod;
+  categoryId?: string;
+  type?: CategoryType;
+};
+
+export function listSubscriptions() {
+  return authedGet<Subscription[]>("/api/subscriptions");
+}
+
+export function createSubscription(input: SubscriptionInput) {
+  return authedSend<Subscription>("POST", "/api/subscriptions", input);
+}
+
+export function updateSubscription(id: string, input: SubscriptionInput) {
+  return authedSend<Subscription>("PUT", `/api/subscriptions/${id}`, input);
+}
+
+export function deleteSubscription(id: string) {
+  return authedSend<void>("DELETE", `/api/subscriptions/${id}`);
+}
+
 export type ComparisonDetail = {
   current: number;
   previous: number;
@@ -176,6 +214,7 @@ export type DashboardData = {
   };
   insights: string[];
   expensesByCategory: { category: string; amount: number; percentage: number }[];
+  expensesByPaymentMethod: { paymentMethod: PaymentMethod; amount: number; percentage: number }[];
   monthlyEvolution: {
     month: string;
     income: number;

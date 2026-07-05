@@ -417,6 +417,11 @@ export default function TransactionsPage() {
                               {transaction.installmentNumber}/{transaction.installmentTotal}
                             </span>
                           )}
+                          {transaction.subscriptionId && (
+                            <span className="flex-shrink-0 rounded-full bg-[#E4F2EC] px-2 py-0.5 text-[11px] font-medium text-[#1C8C6C]">
+                              Assinatura
+                            </span>
+                          )}
                           {isFuture && (
                             <span
                               className="flex-shrink-0 rounded-full bg-[#F5F6F4] px-2 py-0.5 text-[11px] font-medium text-[#0E1420]/45"

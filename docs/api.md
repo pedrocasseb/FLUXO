@@ -226,7 +226,8 @@ Requer autenticação JWT.
     "paymentMethod": "DEBIT",
     "installmentGroupId": null,
     "installmentNumber": null,
-    "installmentTotal": null
+    "installmentTotal": null,
+    "subscriptionId": null
   }
   ```
 
@@ -245,11 +246,12 @@ Requer autenticação JWT.
       "paymentMethod": "DEBIT",
       "installmentGroupId": null,
       "installmentNumber": null,
-      "installmentTotal": null
+      "installmentTotal": null,
+      "subscriptionId": null
     }
   ]
   ```
-- *Obs: retorna todas as transações do usuário, inclusive parcelas com `transactionDate` futuro que ainda não venceram (ver [seção 5](#5-dashboard-financeiro-apidashboard) sobre o que conta no dashboard).*
+- *Obs: retorna todas as transações do usuário, inclusive parcelas com `transactionDate` futuro que ainda não venceram (ver [seção 5](#5-dashboard-financeiro-apidashboard) sobre o que conta no dashboard) e transações lançadas automaticamente por [assinaturas](#7-assinaturas-apisubscriptions) (`subscriptionId` preenchido). Chamar este endpoint dispara a geração de transações de assinaturas vencidas — ver seção 7.*
 
 ### 4.3. Buscar Transação por ID
 - **Rota:** `GET /api/transactions/{id}`
@@ -355,6 +357,18 @@ Requer autenticação JWT. Retorna o consolidador de dados para montagem do Dash
         "percentage": 100.00
       }
     ],
+    "expensesByPaymentMethod": [
+      {
+        "paymentMethod": "CREDIT",
+        "amount": 1000.00,
+        "percentage": 66.67
+      },
+      {
+        "paymentMethod": "DEBIT",
+        "amount": 500.00,
+        "percentage": 33.33
+      }
+    ],
     "monthlyEvolution": [
       {
         "month": "2026-05",
@@ -377,8 +391,9 @@ Requer autenticação JWT. Retorna o consolidador de dados para montagem do Dash
     }
   }
   ```
-- **`summary`** é acumulado desde o início (todas as transações). **`comparisons`** é o mês atual vs. o mês anterior. **`expensesByCategory`** só considera categorias do tipo `EXPENSE`, acumulado histórico. **`insights`** são frases já prontas em português, geradas pelo backend — o client só precisa listá-las.
-- **Transações com `transactionDate` futuro (ex.: parcelas de uma [compra parcelada](#6-transações-parceladas-apitransactionsinstallments) que ainda não venceram) são ignoradas em todo o dashboard** — `summary`, `comparisons`, `expensesByCategory`, `monthlyEvolution` e `insights` só consideram transações com data `<=` hoje. A parcela só passa a contar no saldo/gastos a partir do mês em que ela efetivamente vence. Ela continua aparecendo normalmente em `GET /api/transactions` (para o usuário poder ver/editar/excluir parcelas futuras).
+- **`summary`** é acumulado desde o início (todas as transações). **`comparisons`** é o mês atual vs. o mês anterior. **`expensesByCategory`** só considera categorias do tipo `EXPENSE`, acumulado histórico. **`expensesByPaymentMethod`** é o mesmo recorte (só `EXPENSE`, acumulado histórico), agrupado por `paymentMethod` em vez de categoria; transações antigas com `paymentMethod` nulo (ver [seção 4](#4-transações-financeiras-apitransactions)) são ignoradas nesse agrupamento específico. **`insights`** são frases já prontas em português, geradas pelo backend — o client só precisa listá-las.
+- **Transações com `transactionDate` futuro (ex.: parcelas de uma [compra parcelada](#46-criar-compra-parcelada) que ainda não venceram) são ignoradas em todo o dashboard** — `summary`, `comparisons`, `expensesByCategory`, `monthlyEvolution` e `insights` só consideram transações com data `<=` hoje. A parcela só passa a contar no saldo/gastos a partir do mês em que ela efetivamente vence. Ela continua aparecendo normalmente em `GET /api/transactions` (para o usuário poder ver/editar/excluir parcelas futuras).
+- **Chamar este endpoint também dispara a geração de transações de [assinaturas](#7-assinaturas-apisubscriptions) vencidas** (mesma sincronização lazy do `GET /api/transactions`), antes de montar o resumo.
 
 ---
 
@@ -471,6 +486,74 @@ Requer autenticação JWT. Uma meta representa um objetivo financeiro (ex.: "PS5
 
 ---
 
+## 7. Assinaturas (`/api/subscriptions`)
+
+Requer autenticação JWT. Uma assinatura representa um pagamento recorrente mensal (ex.: "Claude", "Netflix") que gera transações automaticamente, uma por mês, no dia de vencimento configurado.
+
+**Geração sob demanda (lazy), sem job em background:** não existe um processo agendado rodando sozinho. A transação do mês só é criada quando o backend recebe uma requisição de leitura que a "descobre" vencida — hoje isso acontece em `GET /api/transactions`, `GET /api/dashboard` e `GET /api/subscriptions`. Se o vencimento passou e nenhum desses endpoints foi chamado nesse meio tempo, a transação é gerada (com a `transactionDate` correta, no passado) na próxima vez que um deles for chamado — sem "buracos": se vários meses foram perdidos (backend fora do ar, por exemplo), todos são gerados de uma vez, um por vencimento perdido.
+
+**Cancelar mantém histórico:** `DELETE /api/subscriptions/{id}` remove a assinatura, mas **não** apaga as transações que ela já gerou — elas continuam no extrato normalmente. Só para de gerar novas a partir daí.
+
+**Alterar o valor só afeta meses futuros:** transações já geradas guardam seu próprio `amount` e não são recalculadas; a mudança só passa a valer na próxima geração.
+
+### 7.1. Criar Assinatura
+- **Rota:** `POST /api/subscriptions`
+- **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "name": "Claude",
+    "amount": 100.00,
+    "dueDay": 15,
+    "paymentMethod": "CREDIT",
+    "categoryId": "uuid-da-categoria", // Opcional
+    "type": "EXPENSE" // Opcional; só usado quando categoryId é omitido
+  }
+  ```
+- **Validação:** `name` obrigatório; `amount` obrigatório e maior que zero; `dueDay` obrigatório, entre `1` e `31`; `paymentMethod` obrigatório. `dueDay` maior que o número de dias do mês (ex.: `31` em fevereiro) usa o último dia daquele mês.
+- **Geração imediata:** se `dueDay` já chegou ou já passou no mês corrente, a transação desse mês é criada na hora, na própria resposta de criação (a assinatura já nasce com o primeiro pagamento lançado).
+- **Resposta (201 Created):**
+  ```json
+  {
+    "id": "uuid-da-assinatura",
+    "name": "Claude",
+    "amount": 100.00,
+    "dueDay": 15,
+    "paymentMethod": "CREDIT",
+    "categoryId": "uuid-da-categoria",
+    "categoryName": "Assinaturas",
+    "nextDueDate": "2026-08-15",
+    "createdAt": "2026-07-05T10:00:00"
+  }
+  ```
+  `nextDueDate` é sempre a **próxima** data ainda não gerada (por isso já aparece no mês seguinte, se a deste mês acabou de ser gerada).
+
+### 7.2. Listar Assinaturas do Usuário
+- **Rota:** `GET /api/subscriptions`
+- **Resposta (200 OK):** array de objetos no mesmo formato do item 7.1. Dispara a geração de qualquer transação vencida antes de responder.
+
+### 7.3. Buscar Assinatura por ID
+- **Rota:** `GET /api/subscriptions/{id}`
+- **Resposta (200 OK):** mesmo formato do item 7.1.
+
+### 7.4. Atualizar Assinatura
+- **Rota:** `PUT /api/subscriptions/{id}`
+- **Atualização parcial:** `name`, `amount`, `paymentMethod` e `categoryId` só são alterados se enviados. **`dueDay`** só é recalculado (com `nextDueDate` refeito a partir de hoje) se enviado **e diferente** do valor atual — enviar o mesmo valor não mexe em `nextDueDate`.
+- **Corpo da Requisição (JSON):**
+  ```json
+  {
+    "amount": 120.00,
+    "dueDay": 20
+  }
+  ```
+- **Resposta (200 OK):** mesmo formato do item 7.1.
+
+### 7.5. Cancelar Assinatura
+- **Rota:** `DELETE /api/subscriptions/{id}`
+- **Resposta (204 No Content)**
+- *Obs: não apaga transações já geradas (ver nota acima sobre manter histórico).*
+
+---
+
 ## Formato de Erros
 
 Todo erro (exceto 401/403 padrão do Spring Security) segue o mesmo formato, produzido pelo `GlobalExceptionHandler`:
@@ -493,6 +576,6 @@ Todo erro (exceto 401/403 padrão do Spring Security) segue o mesmo formato, pro
 | `400 Bad Request` | Falha de validação Bean Validation (`@NotBlank`, `@NotNull`, `@Positive`, `@Email`, etc.) — inclui `fields`. Também usado para JSON malformado ou valor de enum inválido (ex.: `"type": "NAOEXISTE"`) — sem `fields`. |
 | `401 Unauthorized` | Credenciais de login inválidas, ou token ausente/expirado/inválido em rota protegida. |
 | `403 Forbidden` | Usuário autenticado tentando acessar recurso sem permissão. |
-| `404 Not Found` | Categoria, transação, meta ou aporte não encontrado (ou não pertence ao usuário autenticado — o isolamento por usuário faz um recurso de outro usuário parecer inexistente). |
+| `404 Not Found` | Categoria, transação, meta, aporte ou assinatura não encontrado (ou não pertence ao usuário autenticado — o isolamento por usuário faz um recurso de outro usuário parecer inexistente). |
 | `409 Conflict` | E-mail já cadastrado no registro; ou tentativa de excluir uma categoria com transações vinculadas (violação de integridade referencial). |
 | `500 Internal Server Error` | Erro inesperado não tratado — não deveria acontecer em uso normal; se acontecer, é bug. |

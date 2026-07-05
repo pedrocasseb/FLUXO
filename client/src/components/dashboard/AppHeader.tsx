@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { label: "Categorias", to: "/categorias" },
   { label: "Transações", to: "/transacoes" },
   { label: "Metas", to: "/metas" },
+  { label: "Assinaturas", to: "/assinaturas" },
 ];
 
 export default function AppHeader({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {

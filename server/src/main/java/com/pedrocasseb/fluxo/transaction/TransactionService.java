@@ -5,6 +5,7 @@ import com.pedrocasseb.fluxo.category.CategoryRepository;
 import com.pedrocasseb.fluxo.category.CategoryType;
 import com.pedrocasseb.fluxo.common.exception.CategoryNotFoundException;
 import com.pedrocasseb.fluxo.common.exception.TransactionNotFoundException;
+import com.pedrocasseb.fluxo.subscription.SubscriptionService;
 import com.pedrocasseb.fluxo.transaction.dto.CreateInstallmentPurchaseRequest;
 import com.pedrocasseb.fluxo.transaction.dto.CreateTransactionRequest;
 import com.pedrocasseb.fluxo.transaction.dto.TransactionResponse;
@@ -25,6 +26,7 @@ public class TransactionService {
 
   private final TransactionRepository transactionRepository;
   private final CategoryRepository categoryRepository;
+  private final SubscriptionService subscriptionService;
 
   public TransactionResponse create(CreateTransactionRequest request, User user) {
     Category category = resolveCategory(request.categoryId(), request.type(), user);
@@ -75,6 +77,7 @@ public class TransactionService {
   }
 
   public List<TransactionResponse> findAll(User user) {
+    subscriptionService.syncDueTransactions(user);
     return transactionRepository.findByUser(user).stream().map(this::toResponse).toList();
   }
 
@@ -157,6 +160,7 @@ public class TransactionService {
         transaction.getPaymentMethod(),
         transaction.getInstallmentGroupId(),
         transaction.getInstallmentNumber(),
-        transaction.getInstallmentTotal());
+        transaction.getInstallmentTotal(),
+        transaction.getSubscriptionId());
   }
 }

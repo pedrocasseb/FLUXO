@@ -16,7 +16,15 @@ import {
   ApiError,
   type AuthUser,
   type DashboardData,
+  type PaymentMethod,
 } from "../lib/api";
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  CREDIT: "Crédito",
+  DEBIT: "Débito",
+  PIX: "Pix",
+  CASH: "Dinheiro",
+};
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -188,6 +196,27 @@ export default function DashboardPage() {
                 <div className="mt-6">
                   <CategoryBreakdown data={dashboard.expensesByCategory} />
                 </div>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-[#E4E7E2] bg-white p-6">
+              <h2
+                className="text-[14px] font-semibold text-[#0E1420]"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                Despesas por método de pagamento
+              </h2>
+              <p className="mt-1 text-[12px] text-[#0E1420]/45">
+                Quanto foi gasto em crédito, débito, pix e dinheiro, acumulado desde o início.
+              </p>
+              <div className="mt-6 max-w-md">
+                <CategoryBreakdown
+                  data={dashboard.expensesByPaymentMethod.map((item) => ({
+                    category: PAYMENT_METHOD_LABELS[item.paymentMethod],
+                    amount: item.amount,
+                    percentage: item.percentage,
+                  }))}
+                />
               </div>
             </div>
 
