@@ -284,7 +284,7 @@ export default function SubscriptionsPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="whitespace-nowrap text-[14px] font-medium text-[#9A5B2E]">
+                        <p className="whitespace-nowrap text-[14px] font-medium text-[#C2612E]">
                           {formatCurrency(subscription.amount)}
                         </p>
                         <p className="whitespace-nowrap text-[11px] text-[#0E1420]/40">

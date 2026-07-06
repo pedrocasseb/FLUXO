@@ -31,8 +31,8 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
 
 const AMOUNT_STYLES: Record<CategoryType, string> = {
   INCOME: "text-[#1C8C6C]",
-  EXPENSE: "text-[#9A5B2E]",
-  INVESTMENT: "text-[#2E5CC4]",
+  EXPENSE: "text-[#C2612E]",
+  INVESTMENT: "text-[#1D82A0]",
 };
 
 const AMOUNT_SIGN: Record<CategoryType, string> = {

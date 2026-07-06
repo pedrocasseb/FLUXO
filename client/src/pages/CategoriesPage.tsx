@@ -31,8 +31,8 @@ const TYPE_LABELS: Record<CategoryType, string> = {
 
 const TYPE_DOT_STYLES: Record<CategoryType, string> = {
   INCOME: "bg-[#1C8C6C]",
-  EXPENSE: "bg-[#9A5B2E]",
-  INVESTMENT: "bg-[#2E5CC4]",
+  EXPENSE: "bg-[#C2612E]",
+  INVESTMENT: "bg-[#1D82A0]",
 };
 
 export default function CategoriesPage() {

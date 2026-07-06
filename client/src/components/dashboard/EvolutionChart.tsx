@@ -88,11 +88,11 @@ export default function EvolutionChart({ data }: { data: Point[] }) {
             </linearGradient>
           </defs>
           <path d={incomeArea} fill="url(#evolution-income-fill)" />
-          <path d={expensePath} fill="none" stroke="#9A5B2E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={expensePath} fill="none" stroke="#C2612E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           <path
             d={investmentPath}
             fill="none"
-            stroke="#2E5CC4"
+            stroke="#1D82A0"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -124,13 +124,13 @@ export default function EvolutionChart({ data }: { data: Point[] }) {
                 {active && (
                   <>
                     <circle cx={scaleX(i)} cy={scaleY(d.income)} r={8} fill="#1C8C6C" fillOpacity="0.18" />
-                    <circle cx={scaleX(i)} cy={scaleY(d.expense)} r={8} fill="#9A5B2E" fillOpacity="0.18" />
-                    <circle cx={scaleX(i)} cy={scaleY(d.investment)} r={8} fill="#2E5CC4" fillOpacity="0.18" />
+                    <circle cx={scaleX(i)} cy={scaleY(d.expense)} r={8} fill="#C2612E" fillOpacity="0.18" />
+                    <circle cx={scaleX(i)} cy={scaleY(d.investment)} r={8} fill="#1D82A0" fillOpacity="0.18" />
                   </>
                 )}
                 <circle cx={scaleX(i)} cy={scaleY(d.income)} r={active ? 5 : 3.5} fill="#1C8C6C" />
-                <circle cx={scaleX(i)} cy={scaleY(d.expense)} r={active ? 5 : 3.5} fill="#9A5B2E" />
-                <circle cx={scaleX(i)} cy={scaleY(d.investment)} r={active ? 5 : 3.5} fill="#2E5CC4" />
+                <circle cx={scaleX(i)} cy={scaleY(d.expense)} r={active ? 5 : 3.5} fill="#C2612E" />
+                <circle cx={scaleX(i)} cy={scaleY(d.investment)} r={active ? 5 : 3.5} fill="#1D82A0" />
               </g>
             );
           })}
@@ -160,14 +160,14 @@ export default function EvolutionChart({ data }: { data: Point[] }) {
             </div>
             <div className="mt-1 flex items-center justify-between gap-3 text-[12px]">
               <span className="flex items-center gap-1.5 text-[#0E1420]/60">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#9A5B2E]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#C2612E]" />
                 Despesas
               </span>
               <span className="font-medium text-[#0E1420]">{formatCurrency(hovered.expense)}</span>
             </div>
             <div className="mt-1 flex items-center justify-between gap-3 text-[12px]">
               <span className="flex items-center gap-1.5 text-[#0E1420]/60">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#2E5CC4]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#1D82A0]" />
                 Investimentos
               </span>
               <span className="font-medium text-[#0E1420]">{formatCurrency(hovered.investment)}</span>
@@ -187,11 +187,11 @@ export default function EvolutionChart({ data }: { data: Point[] }) {
           Receitas
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#9A5B2E]" />
+          <span className="h-2 w-2 rounded-full bg-[#C2612E]" />
           Despesas
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#2E5CC4]" />
+          <span className="h-2 w-2 rounded-full bg-[#1D82A0]" />
           Investimentos
         </span>
       </div>

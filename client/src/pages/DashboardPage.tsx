@@ -30,6 +30,15 @@ const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Dinheiro",
 };
 
+// Cores próprias, sem repetir com a paleta padrão de "Despesas por categoria"
+// nem com verde/vermelho (que já significam receita/erro no resto do app).
+const PAYMENT_METHOD_COLORS: Record<string, string> = {
+  Crédito: "#4A3AEB",
+  Débito: "#1D82A0",
+  Pix: "#9A5CA8",
+  Dinheiro: "#B8863F",
+};
+
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
 
 export default function DashboardPage() {
@@ -176,14 +185,14 @@ export default function DashboardPage() {
                 value={dashboard.comparisons.expense.current}
                 percentage={dashboard.comparisons.expense.percentage}
                 isGood={dashboard.comparisons.expense.percentage <= 0}
-                accentColor="#9A5B2E"
+                accentColor="#C2612E"
               />
               <StatCard
                 label="Investimentos do mês"
                 value={dashboard.comparisons.investment.current}
                 percentage={dashboard.comparisons.investment.percentage}
                 isGood={dashboard.comparisons.investment.percentage >= 0}
-                accentColor="#2E5CC4"
+                accentColor="#1D82A0"
               />
               <StatCard
                 label="Economia do mês"
@@ -294,7 +303,7 @@ export default function DashboardPage() {
                             <span className="text-[#0E1420]/45">
                               {dateFormatter.format(new Date(`${subscription.nextDueDate}T00:00:00Z`))}
                             </span>
-                            <span className="font-medium text-[#9A5B2E]">
+                            <span className="font-medium text-[#C2612E]">
                               {formatCurrency(subscription.amount)}
                             </span>
                           </div>
@@ -351,6 +360,7 @@ export default function DashboardPage() {
                     amount: item.amount,
                     percentage: item.percentage,
                   }))}
+                  colors={PAYMENT_METHOD_COLORS}
                 />
               </div>
             </div>
